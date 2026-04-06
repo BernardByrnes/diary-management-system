@@ -1,0 +1,92 @@
+"use client";
+
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { TrendingDown, AlertTriangle, DollarSign, PackageX, ChevronRight } from "lucide-react";
+import type { Alert } from "@/lib/utils/command-center";
+
+const iconMap = {
+  LOSS: TrendingDown,
+  DISCREPANCY: AlertTriangle,
+  PAYMENT: DollarSign,
+  STOCK: PackageX,
+};
+
+const colorMap = {
+  HIGH: {
+    border: "border-red-500",
+    bg: "bg-red-50 dark:bg-red-950/20",
+    icon: "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400",
+  },
+  MEDIUM: {
+    border: "border-yellow-500",
+    bg: "bg-yellow-50 dark:bg-yellow-950/20",
+    icon: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400",
+  },
+  LOW: {
+    border: "border-blue-500",
+    bg: "bg-blue-50 dark:bg-blue-950/20",
+    icon: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
+  },
+};
+
+export default function CommandCenterAlerts({ alerts }: { alerts: Alert[] }) {
+  return (
+    <>
+      <motion.div
+        className={`space-y-3 ${alerts.length > 5 ? "max-h-96 overflow-y-auto pr-2" : ""}`}
+        variants={{
+          hidden: { opacity: 0 },
+          show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+        }}
+        initial="hidden"
+        animate="show"
+      >
+        {alerts.map((alert) => {
+          const Icon = iconMap[alert.type];
+          const colors = colorMap[alert.urgency];
+          return (
+            <motion.div
+              key={alert.id}
+              variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
+            >
+              <Link
+                href={alert.actionUrl}
+                className={`block bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 ${colors.border} p-4 hover:shadow-md transition-shadow duration-200 cursor-pointer`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${colors.icon}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {alert.message}
+                    </p>
+                    {alert.metadata && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {alert.metadata.branchName && (
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            {alert.metadata.branchName}
+                          </span>
+                        )}
+                        {alert.metadata.amount !== undefined && (
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            UGX {new Intl.NumberFormat("en-UG").format(alert.metadata.amount)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                </div>
+              </Link>
+            </motion.div>
+          );
+        })}
+      </motion.div>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
+        Projections are estimates based on historical trends and may not reflect actual future outcomes.
+      </p>
+    </>
+  );
+}
