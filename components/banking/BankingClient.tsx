@@ -32,6 +32,8 @@ let toastCounter = 0;
 export default function BankingClient({ initialRecords, branchOptions, userRole }: Props) {
   const [records, setRecords] = useState<DepositRecord[]>(initialRecords);
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<DepositRecord | null>(null);
@@ -48,12 +50,16 @@ export default function BankingClient({ initialRecords, branchOptions, userRole 
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const filtered = records.filter(
-    (r) =>
+  const filtered = records.filter((r) => {
+    const matchSearch =
       r.bankName.toLowerCase().includes(search.toLowerCase()) ||
       r.referenceNumber.toLowerCase().includes(search.toLowerCase()) ||
-      r.branch.name.toLowerCase().includes(search.toLowerCase())
-  );
+      r.branch.name.toLowerCase().includes(search.toLowerCase());
+    const rDate = r.date.slice(0, 10);
+    const matchFrom = !dateFrom || rDate >= dateFrom;
+    const matchTo = !dateTo || rDate <= dateTo;
+    return matchSearch && matchFrom && matchTo;
+  });
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -79,24 +85,46 @@ export default function BankingClient({ initialRecords, branchOptions, userRole 
 
       <div className="space-y-5">
         {/* Toolbar */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search deposits..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
-            />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search deposits..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
+              />
+            </div>
+            <button
+              onClick={() => setAddOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Deposit
+            </button>
           </div>
-          <button
-            onClick={() => setAddOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-xl transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Deposit
-          </button>
+          <div className="flex gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Table */}
