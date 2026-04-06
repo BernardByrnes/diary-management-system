@@ -8,6 +8,9 @@ import {
   XCircle,
   PackageSearch,
   Pencil,
+  Droplet,
+  ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +32,22 @@ interface SnapshotRecord {
   reviewedBy: { id: string; fullName: string } | null;
   reviewedAt: string | null;
   createdAt: string;
+}
+
+interface BreakdownData {
+  baseSnapshot: { id: string; date: string; physicalLiters: number } | null;
+  supplies: Array<{ id: string; date: string; liters: number; supplier: string; deliveryReference: string }>;
+  transfersIn: Array<{ id: string; date: string; liters: number; sourceBranch: string }>;
+  transfersOut: Array<{ id: string; date: string; liters: number; destinationBranch: string }>;
+  sales: Array<{ id: string; date: string; litersSold: number; recordedBy: string }>;
+  totals: {
+    base: number;
+    supply: number;
+    transferIn: number;
+    transferOut: number;
+    sold: number;
+    computed: number;
+  };
 }
 
 interface Props {
@@ -72,6 +91,9 @@ export default function StockSnapshotsClient({
   const [editTarget, setEditTarget] = useState<SnapshotRecord | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ record: SnapshotRecord; action: "APPROVE" | "REJECT" } | null>(null);
   const [reviewing, setReviewing] = useState(false);
+  const [breakdownModal, setBreakdownModal] = useState<{ snapshotId: string; branchName: string } | null>(null);
+  const [breakdownData, setBreakdownData] = useState<BreakdownData | null>(null);
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
 
   const isED = userRole === "EXECUTIVE_DIRECTOR";
 
@@ -180,6 +202,40 @@ export default function StockSnapshotsClient({
     setEditTarget(null);
   }
 
+  async function openBreakdown(snapshotId: string, branchName: string) {
+    setBreakdownModal({ snapshotId, branchName });
+    setBreakdownLoading(true);
+    try {
+      const res = await fetch(`/api/stock-snapshots/${snapshotId}/breakdown`);
+      if (res.ok) {
+        const data = await res.json();
+        setBreakdownData(data);
+      } else {
+        addToast("error", "Failed to load breakdown");
+      }
+    } catch {
+      addToast("error", "Network error loading breakdown");
+    } finally {
+      setBreakdownLoading(false);
+    }
+  }
+
+  // Get latest approved snapshot per branch (for ED cards)
+  const branchStocks = isED
+    ? branchOptions.map((branch) => {
+        const latestApproved = records
+          .filter((r) => r.branchId === branch.id && r.status === "APPROVED")
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        return {
+          branchId: branch.id,
+          branchName: branch.name,
+          computed: latestApproved ? Number(latestApproved.computedLiters) : 0,
+          snapshotId: latestApproved?.id,
+          lastUpdated: latestApproved?.date,
+        };
+      })
+    : [];
+
   const tabs: FilterTab[] = ["ALL", "PENDING", "APPROVED", "REJECTED"];
   const tabCounts: Record<FilterTab, number> = {
     ALL: records.length,
@@ -210,7 +266,146 @@ export default function StockSnapshotsClient({
 
   return (
     <>
-      <div className="space-y-4">
+      {/* Breakdown Modal */}
+      {breakdownModal && (
+        <Modal isOpen onClose={() => setBreakdownModal(null)} title={`${breakdownModal.branchName} — Stock Breakdown`}>
+          {breakdownLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+            </div>
+          ) : breakdownData ? (
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {breakdownData.baseSnapshot && (
+                <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                  <p className="text-gray-600">
+                    Base (from {new Date(breakdownData.baseSnapshot.date).toLocaleDateString()}):
+                  </p>
+                  <p className="font-semibold text-lg">+{breakdownData.baseSnapshot.physicalLiters.toFixed(1)} L</p>
+                </div>
+              )}
+
+              {breakdownData.supplies.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Milk Supplied</p>
+                  <div className="space-y-1">
+                    {breakdownData.supplies.map((s) => (
+                      <div key={s.id} className="flex justify-between text-sm">
+                        <span className="text-gray-600">
+                          {s.supplier} ({new Date(s.date).toLocaleDateString()})
+                        </span>
+                        <span className="font-medium text-green-700">+{s.liters.toFixed(1)} L</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Total: +{breakdownData.totals.supply.toFixed(1)} L</p>
+                </div>
+              )}
+
+              {breakdownData.transfersIn.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Transfers In</p>
+                  <div className="space-y-1">
+                    {breakdownData.transfersIn.map((t) => (
+                      <div key={t.id} className="flex justify-between text-sm">
+                        <span className="text-gray-600">
+                          From {t.sourceBranch} ({new Date(t.date).toLocaleDateString()})
+                        </span>
+                        <span className="font-medium text-blue-700">+{t.liters.toFixed(1)} L</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Total: +{breakdownData.totals.transferIn.toFixed(1)} L</p>
+                </div>
+              )}
+
+              {breakdownData.transfersOut.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Transfers Out</p>
+                  <div className="space-y-1">
+                    {breakdownData.transfersOut.map((t) => (
+                      <div key={t.id} className="flex justify-between text-sm">
+                        <span className="text-gray-600">
+                          To {t.destinationBranch} ({new Date(t.date).toLocaleDateString()})
+                        </span>
+                        <span className="font-medium text-orange-700">-{t.liters.toFixed(1)} L</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Total: -{breakdownData.totals.transferOut.toFixed(1)} L</p>
+                </div>
+              )}
+
+              {breakdownData.sales.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Sales</p>
+                  <div className="space-y-1">
+                    {breakdownData.sales.map((s) => (
+                      <div key={s.id} className="flex justify-between text-sm">
+                        <span className="text-gray-600">
+                          {s.recordedBy} ({new Date(s.date).toLocaleDateString()})
+                        </span>
+                        <span className="font-medium text-red-700">-{s.litersSold.toFixed(1)} L</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Total: -{breakdownData.totals.sold.toFixed(1)} L</p>
+                </div>
+              )}
+
+              <div className="bg-green-50 rounded-lg p-3 border border-green-200 mt-4">
+                <p className="text-xs text-gray-600 uppercase font-semibold mb-1">Computed Stock</p>
+                <p className="text-2xl font-bold text-green-700">{breakdownData.totals.computed.toFixed(1)} L</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm">No data available</p>
+          )}
+        </Modal>
+      )}
+
+      <div className="space-y-6">
+        {/* ED Stock Cards */}
+        {isED && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {branchStocks.map((stock) => (
+              <button
+                key={stock.branchId}
+                onClick={() => stock.snapshotId && openBreakdown(stock.snapshotId, stock.branchName)}
+                disabled={!stock.snapshotId}
+                className={`rounded-2xl p-5 border transition-all text-left ${
+                  stock.snapshotId
+                    ? "bg-white border-gray-100 hover:border-green-400 hover:shadow-md cursor-pointer"
+                    : "bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed"
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                      <Droplet className="w-4 h-4 text-green-700" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900 text-sm">{stock.branchName}</h3>
+                  </div>
+                  {stock.snapshotId && <ChevronRight className="w-5 h-5 text-gray-400" />}
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Computed Stock</p>
+                    <p className="text-2xl font-bold text-green-700">{stock.computed.toFixed(1)} L</p>
+                  </div>
+                  {stock.lastUpdated && (
+                    <p className="text-xs text-gray-400">
+                      Last: {new Date(stock.lastUpdated).toLocaleDateString()}
+                    </p>
+                  )}
+                  {!stock.snapshotId && (
+                    <p className="text-xs text-gray-500 italic">No approved snapshots yet</p>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="relative flex-1">
