@@ -12,7 +12,6 @@ import {
   ReferenceLine,
 } from "recharts";
 import { BarChart3 } from "lucide-react";
-import { CustomTooltip } from "@/components/charts/CustomTooltip";
 import { formatAxisCurrency } from "@/lib/utils/format-axis";
 
 export interface BranchStat {
@@ -39,6 +38,30 @@ interface RcTooltipProps {
   active?: boolean;
   payload?: Array<{ name: string; value: number; color: string }>;
   label?: string;
+}
+
+function BranchTooltip({ active, payload, label }: RcTooltipProps) {
+  if (!active || !payload || !payload.length) return null;
+  const fmt = (v: number) =>
+    "UGX " + new Intl.NumberFormat("en-UG", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-3 min-w-[180px]">
+      <p className="text-xs font-semibold text-gray-700 mb-2">{label}</p>
+      <div className="space-y-1.5">
+        {payload.map((entry) => (
+          <div key={entry.name} className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+              <span className="text-xs text-gray-500">{entry.name}</span>
+            </div>
+            <span className={`text-xs font-semibold ${entry.value < 0 ? "text-red-600" : "text-gray-900"}`}>
+              {fmt(entry.value)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const SERIES = [
@@ -102,7 +125,7 @@ export default function BranchPerformanceChart({ stats }: BranchPerformanceChart
             <ReferenceLine y={0} stroke="#E5E7EB" strokeWidth={1.5} />
           )}
           <Tooltip
-            content={<CustomTooltip prefix="UGX " />}
+            content={<BranchTooltip />}
             cursor={{ fill: "#F9FAFB", radius: 4 }}
           />
           <Legend
