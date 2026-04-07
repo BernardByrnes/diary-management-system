@@ -270,13 +270,13 @@ export default async function DashboardPage() {
       )}
 
       {/* Row 1: Highlight + Stat cards */}
-      <div className="grid grid-cols-1 gap-4" style={{ gridTemplateColumns: "1fr 2.7fr" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_2.7fr] gap-4">
         <HighlightCard
           litersToday={totalMilkToday}
           litersYesterday={totalMilkYesterday}
           branchCount={activeBranchesCount}
         />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {stats.map((s) => (
             <StatCard key={s.label} {...s} />
           ))}
