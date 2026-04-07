@@ -268,7 +268,7 @@ export default function StockSnapshotsClient({
     <>
       {/* Breakdown Modal */}
       {breakdownModal && (
-        <Modal isOpen onClose={() => setBreakdownModal(null)} title={`${breakdownModal.branchName} — Stock Breakdown`}>
+        <Modal open onClose={() => setBreakdownModal(null)} title={`${breakdownModal.branchName} — Stock Breakdown`}>
           {breakdownLoading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-green-600" />
@@ -691,15 +691,6 @@ export default function StockSnapshotsClient({
     </>
   );
 }
-
-type BreakdownData = {
-  baseSnapshot: { id: string; date: string; physicalLiters: number } | null;
-  supplies: { id: string; date: string; liters: number; supplier: string; deliveryReference: string | null }[];
-  transfersIn: { id: string; date: string; liters: number; sourceBranch: string }[];
-  transfersOut: { id: string; date: string; liters: number; destinationBranch: string }[];
-  sales: { id: string; date: string; litersSold: number; recordedBy: string }[];
-  totals: { base: number; supply: number; transferIn: number; transferOut: number; sold: number; computed: number };
-};
 
 function EditSnapshotModal({
   record,
