@@ -51,7 +51,7 @@ const navSections: Record<Role, NavSection[]> = {
     {
       heading: "Operations",
       items: [
-        { href: "/dashboard/milk-supply", label: "Milk Supply", icon: Droplets },
+        { href: "/dashboard/milk-supply", label: "Milk Deliveries", icon: Droplets },
         { href: "/dashboard/sales", label: "Sales", icon: ShoppingCart },
         { href: "/dashboard/expenses", label: "Expenses", icon: Receipt },
         { href: "/dashboard/advances", label: "Advances", icon: Wallet },
@@ -91,7 +91,7 @@ const navSections: Record<Role, NavSection[]> = {
     {
       heading: "Operations",
       items: [
-        { href: "/dashboard/milk-supply", label: "Milk Supply", icon: Droplets },
+        { href: "/dashboard/milk-supply", label: "Milk Deliveries", icon: Droplets },
         { href: "/dashboard/sales", label: "Sales", icon: ShoppingCart },
         { href: "/dashboard/expenses", label: "Expenses", icon: Receipt },
         { href: "/dashboard/banking", label: "Banking", icon: Landmark },

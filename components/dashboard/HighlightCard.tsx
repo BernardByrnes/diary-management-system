@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { TrendingUp, TrendingDown, Droplets } from "lucide-react";
 
 interface HighlightCardProps {
@@ -23,6 +24,16 @@ export default function HighlightCard({
       <div className="absolute -bottom-10 -right-4 w-52 h-52 rounded-full bg-white/5" />
       <div className="absolute top-1/2 -left-8 w-28 h-28 rounded-full bg-white/5" />
 
+      {/* Milk truck image */}
+      <div className="absolute -top-4 right-0 w-[55%] h-[55%] pointer-events-none">
+        <Image
+          src="/Milk-Truck.png"
+          alt="Milk Truck"
+          fill
+          className="object-contain object-right-top drop-shadow-lg"
+        />
+      </div>
+
       <div className="relative z-10">
         {/* Label */}
         <div className="flex items-center gap-2 mb-5">
@@ -30,7 +41,7 @@ export default function HighlightCard({
             <Droplets className="w-4 h-4 text-green-200" />
           </div>
           <span className="text-green-200 text-xs font-medium uppercase tracking-widest">
-            Today&apos;s Collection
+            Today&apos;s Delivery
           </span>
         </div>
 
