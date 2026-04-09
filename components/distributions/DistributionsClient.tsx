@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  Search, Plus, FileText, RefreshCw, TrendingUp, TrendingDown, Calculator,
+  Search, Plus, FileText, RefreshCw, TrendingUp, TrendingDown, Calculator, CalendarRange,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import Toast, { type ToastMessage } from "@/components/ui/Toast";
@@ -45,6 +45,8 @@ interface Props {
   ownerOptions: { id: string; fullName: string }[];
   branchSummaries: BranchSummary[];
   monthLabel: string;
+  startDate: string;
+  endDate: string;
 }
 
 const distributionSchema = z.object({
@@ -96,6 +98,8 @@ export default function DistributionsClient({
   ownerOptions,
   branchSummaries,
   monthLabel,
+  startDate,
+  endDate,
 }: Props) {
   const router = useRouter();
   const [records, setRecords] = useState<DistributionRecord[]>(initialRecords);
@@ -103,6 +107,21 @@ export default function DistributionsClient({
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [dateFrom, setDateFrom] = useState(startDate);
+  const [dateTo, setDateTo] = useState(endDate);
+
+  function applyDateRange() {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set("startDate", dateFrom);
+    if (dateTo) params.set("endDate", dateTo);
+    router.push(`/dashboard/distributions?${params.toString()}`);
+  }
+
+  function clearDateRange() {
+    setDateFrom("");
+    setDateTo("");
+    router.push("/dashboard/distributions");
+  }
 
   useEffect(() => { setRecords(initialRecords); }, [initialRecords]);
 
@@ -158,6 +177,51 @@ export default function DistributionsClient({
       <Toast toasts={toasts} onDismiss={dismissToast} />
 
       <div className="space-y-8">
+
+        {/* ── Date Range Picker ─────────────────────────────── */}
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
+              <CalendarRange className="w-4 h-4 text-violet-600" />
+              <span>Date Range</span>
+            </div>
+            <div className="flex items-center gap-2 flex-1 flex-wrap">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-400">From</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-400">To</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
+                />
+              </div>
+              <button
+                onClick={applyDateRange}
+                disabled={!dateFrom || !dateTo}
+                className="px-4 py-2 text-sm font-medium text-white bg-violet-700 hover:bg-violet-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors"
+              >
+                Apply
+              </button>
+              {(startDate || endDate) && (
+                <button
+                  onClick={clearDateRange}
+                  className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* ── Branch P&L Cards ───────────────────────────────── */}
         <div>

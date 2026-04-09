@@ -6,16 +6,25 @@ import DistributionsClient from "@/components/distributions/DistributionsClient"
 
 export const dynamic = "force-dynamic";
 
-export default async function DistributionsPage() {
+export default async function DistributionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ startDate?: string; endDate?: string }>;
+}) {
   const session = await auth();
   const user = session!.user as { id: string; role: string };
 
   if (user.role !== "EXECUTIVE_DIRECTOR") redirect("/dashboard");
 
-  // Current month boundaries for branch P&L cards
+  const params = await searchParams;
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  const monthStart = params.startDate
+    ? new Date(params.startDate)
+    : new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = params.endDate
+    ? new Date(new Date(params.endDate).setHours(23, 59, 59, 999))
+    : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
   const [distributions, branches, owners, revenueByBranch, milkCostsByBranch, expensesByBranch] =
     await Promise.all([
@@ -87,7 +96,9 @@ export default async function DistributionsPage() {
     createdAt: d.createdAt.toISOString(),
   }));
 
-  const monthLabel = now.toLocaleString("default", { month: "long", year: "numeric" });
+  const periodLabel = params.startDate && params.endDate
+    ? `${new Date(params.startDate).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" })} – ${new Date(params.endDate).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" })}`
+    : now.toLocaleString("default", { month: "long", year: "numeric" });
 
   return (
     <div className="space-y-6">
@@ -108,7 +119,9 @@ export default async function DistributionsPage() {
         branchOptions={branches}
         ownerOptions={owners}
         branchSummaries={branchSummaries}
-        monthLabel={monthLabel}
+        monthLabel={periodLabel}
+        startDate={params.startDate ?? ""}
+        endDate={params.endDate ?? ""}
       />
     </div>
   );

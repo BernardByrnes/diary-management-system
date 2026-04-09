@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import SessionIdleTimeout from "./SessionIdleTimeout";
 import { FloatingActions } from "@/components/ui/FloatingActions";
+import { AiChat } from "@/components/ai/AiChat";
 import type { Role } from "@prisma/client";
 
 interface DashboardShellProps {
@@ -46,6 +47,7 @@ export default function DashboardShell({
       {(role === "EXECUTIVE_DIRECTOR" || role === "MANAGER") && (
         <FloatingActions />
       )}
+      <AiChat />
     </div>
   );
 }
