@@ -35,16 +35,16 @@ export default async function NotificationsPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-          <Bell className="w-5 h-5 text-blue-700" />
+          <Bell className="w-5 h-5 text-blue-600" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-sm text-gray-400">{unreadCount} unread</p>
+          <p className="text-sm text-gray-500">{unreadCount} unread</p>
         </div>
       </div>
 
       {serialized.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 text-center">
+        <div className="bg-white rounded-xl p-12 text-center border border-gray-200">
           <CheckCircle2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-lg text-gray-600">No notifications</p>
           <p className="text-sm text-gray-500 mt-1">You&apos;re all caught up!</p>
@@ -54,7 +54,7 @@ export default async function NotificationsPage() {
           {/* High urgency */}
           {highUrgency.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-red-600 mb-3">
+              <h2 className="text-sm font-medium text-gray-500 border-b border-gray-200 pb-2 mb-3">
                 Urgent ({highUrgency.length})
               </h2>
               <NotificationsList notifications={highUrgency} />
@@ -64,7 +64,7 @@ export default async function NotificationsPage() {
           {/* Medium urgency */}
           {mediumUrgency.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-yellow-600 mb-3">
+              <h2 className="text-sm font-medium text-gray-500 border-b border-gray-200 pb-2 mb-3">
                 Moderate ({mediumUrgency.length})
               </h2>
               <NotificationsList notifications={mediumUrgency} />
@@ -74,7 +74,7 @@ export default async function NotificationsPage() {
           {/* Low urgency */}
           {lowUrgency.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold text-blue-600 mb-3">
+              <h2 className="text-sm font-medium text-gray-500 border-b border-gray-200 pb-2 mb-3">
                 Info ({lowUrgency.length})
               </h2>
               <NotificationsList notifications={lowUrgency} />

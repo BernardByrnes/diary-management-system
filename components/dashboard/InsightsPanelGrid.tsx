@@ -31,26 +31,30 @@ const trendArrowMap = {
   STABLE: ArrowRight,
 };
 
-const colorMap: Record<Insight["type"], { border: string; icon: string; arrow: string }> = {
+const colorMap: Record<Insight["type"], { bg: string; iconBg: string; iconColor: string; textColor: string }> = {
   REVENUE: {
-    border: "border-l-blue-500",
-    icon: "bg-blue-100 text-blue-700",
-    arrow: "text-blue-500",
+    bg: "bg-blue-50",
+    iconBg: "bg-blue-100",
+    iconColor: "text-blue-600",
+    textColor: "text-blue-800",
   },
   PROFIT: {
-    border: "border-l-green-500",
-    icon: "bg-green-100 text-green-700",
-    arrow: "text-green-500",
+    bg: "bg-green-50",
+    iconBg: "bg-green-100",
+    iconColor: "text-green-600",
+    textColor: "text-green-800",
   },
   EXPENSE: {
-    border: "border-l-orange-500",
-    icon: "bg-orange-100 text-orange-700",
-    arrow: "text-orange-500",
+    bg: "bg-orange-50",
+    iconBg: "bg-orange-100",
+    iconColor: "text-orange-600",
+    textColor: "text-orange-800",
   },
   PERFORMANCE: {
-    border: "border-l-violet-500",
-    icon: "bg-violet-100 text-violet-700",
-    arrow: "text-violet-500",
+    bg: "bg-violet-50",
+    iconBg: "bg-violet-100",
+    iconColor: "text-violet-600",
+    textColor: "text-violet-800",
   },
 };
 
@@ -75,21 +79,21 @@ export default function InsightsPanelGrid({ insights }: { insights: Insight[] })
             key={index}
             variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
           >
-            <div className={`bg-white rounded-xl p-5 border border-gray-100 border-l-4 ${colors.border} shadow-sm relative overflow-hidden`}>
+            <div className={`bg-white rounded-xl p-5 border border-gray-100 shadow-sm relative overflow-hidden ${colors.bg}`}>
               <div className="flex items-start justify-between mb-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors.icon}`}>
-                  <Icon className="w-5 h-5" />
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors.iconBg}`}>
+                  <Icon className={`w-5 h-5 ${colors.iconColor}`} />
                 </div>
                 {TrendArrow && (
-                  <div className={colors.arrow}>
+                  <div className={colors.iconColor}>
                     <TrendArrow className="w-4 h-4" />
                   </div>
                 )}
               </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">
+              <h3 className={`text-sm font-semibold mb-1 ${colors.textColor}`}>
                 {insight.title}
               </h3>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-xs text-gray-600 leading-relaxed">
                 {insight.description}
               </p>
               {insight.changePercent !== undefined && (

@@ -78,13 +78,14 @@ export default async function DashboardPage() {
   const branchFilter =
     isED ? {} : { branchId: { in: branchIds } };
 
-  // --- Phase 2: parallel queries ---
+// --- Phase 2: parallel queries ---
   const [
     milkToday,
     milkYesterday,
     salesToday,
     salesMonth,
     expensesMonth,
+    milkCostMonth,
     pendingTransfersCount,
     activeBranchesCount,
     recentSupply,
@@ -111,12 +112,16 @@ export default async function DashboardPage() {
       where: { ...branchFilter, date: { gte: monthStart } },
       _sum: { amount: true },
     }),
+    prisma.milkSupply.aggregate({
+      where: { ...branchFilter, date: { gte: monthStart } },
+      _sum: { totalCost: true },
+    }),
     isED
-      ? prisma.milkTransfer.count({ where: { status: "PENDING" } })
-      : Promise.resolve(0),
+    ? prisma.milkTransfer.count({ where: { status: "PENDING" } })
+    : Promise.resolve(0),
     isED
-      ? prisma.branch.count({ where: { isActive: true } })
-      : Promise.resolve(branchIds.length),
+    ? prisma.branch.count({ where: { isActive: true } })
+    : Promise.resolve(branchIds.length),
     prisma.milkSupply.findMany({
       where: branchFilter,
       take: 6,
@@ -150,6 +155,7 @@ export default async function DashboardPage() {
   const totalSalesToday = Number(salesToday._sum.revenue ?? 0);
   const totalSalesMonth = Number(salesMonth._sum.revenue ?? 0);
   const totalExpensesMonth = Number(expensesMonth._sum.amount ?? 0);
+  const totalMilkCostMonth = Number(milkCostMonth._sum?.totalCost ?? 0);
 
   // --- Weekly chart data ---
   const weeklyChartData: WeeklyDataPoint[] = Array.from({ length: 7 }, (_, i) => {
@@ -317,6 +323,7 @@ export default async function DashboardPage() {
             <DonutChart
               revenue={totalSalesMonth}
               expenses={totalExpensesMonth}
+              milkCost={totalMilkCostMonth}
             />
           </div>
         </div>

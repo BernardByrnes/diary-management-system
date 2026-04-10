@@ -36,10 +36,10 @@ export function NotificationsList({
     READING_OUT_OF_RANGE: Gauge
   }
 
-  const urgencyColors = {
-    HIGH: 'border-l-red-500',
-    MEDIUM: 'border-l-yellow-500',
-    LOW: 'border-l-blue-500'
+  const iconColors = {
+    HIGH: 'bg-red-100 text-red-600',
+    MEDIUM: 'bg-yellow-100 text-yellow-600',
+    LOW: 'bg-blue-100 text-blue-600'
   }
 
   const handleMarkAsRead = async (notificationId: string) => {
@@ -48,19 +48,37 @@ export function NotificationsList({
         method: 'POST'
       })
 
-      setItems(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
-      )
+      setItems(prev => prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n))
     } catch (error) {
       console.error('Failed to mark as read:', error)
     }
   }
 
+  const renderHighlightedMessage = (message: string) => {
+    const parts = message.split(/(\d+(?:\.\d+)?|[A-Z][a-zA-Z0-9_-]+)/g)
+    
+    return parts.map((part, i) => {
+      if (/^\d+(?:\.\d+)?$/.test(part)) {
+        return <span key={i} className="font-semibold text-gray-900">{part}</span>
+      }
+      if (/^(success|completed|approved|paid|clear|done)$/i.test(part)) {
+        return <span key={i} className="text-green-600">{part}</span>
+      }
+      if (/^(error|failed|overdue|missing|discrepancy)/i.test(part)) {
+        return <span key={i} className="text-red-600">{part}</span>
+      }
+      if (/^[A-Z][a-zA-Z0-9_-]{2,}$/.test(part)) {
+        return <span key={i} className="font-medium text-gray-900">{part}</span>
+      }
+      return part
+    })
+  }
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {items.map((notification, index) => {
         const Icon = iconMap[notification.type] || AlertTriangle
-        const urgencyClass = urgencyColors[notification.urgency]
+        const iconColorClass = iconColors[notification.urgency]
 
         return (
           <motion.div
@@ -69,57 +87,42 @@ export function NotificationsList({
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05 }}
             className={`
-              bg-white dark:bg-gray-800
-              rounded-lg
+              bg-white
+              rounded-xl
               p-4
-              border-l-4
-              ${urgencyClass}
+              border border-gray-200
+              shadow-sm
               ${notification.isRead ? 'opacity-60' : ''}
-              shadow-sm hover:shadow-md
-              transition-all duration-200
+              hover:bg-gray-50
+              transition-colors duration-200
             `}
           >
             <div className="flex items-start gap-3">
-              {/* Icon */}
-              <div className={`
-                flex-shrink-0
-                w-10 h-10
-                rounded-full
-                flex items-center justify-center
-                ${notification.urgency === 'HIGH'
-                  ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                  : notification.urgency === 'MEDIUM'
-                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                }
-              `}>
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${iconColorClass}`}>
                 <Icon className="w-5 h-5" />
               </div>
 
-              {/* Content */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className={`
-                    text-sm
-                    ${notification.isRead ? 'font-normal' : 'font-semibold'}
-                    text-gray-900 dark:text-gray-100
-                  `}>
+                <div className="flex items-center gap-2">
+                  <p className={`text-sm font-semibold text-gray-900 ${notification.isRead ? 'font-normal' : ''}`}>
                     {notification.title}
                   </p>
-
-                  <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                  {!notification.isRead && (
+                    <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                  )}
+                  <span className="text-xs text-gray-500 ml-auto">
                     {formatDate(new Date(notification.createdAt))}
                   </span>
                 </div>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {notification.message}
+                <p className="text-sm text-gray-600 leading-relaxed mt-1">
+                  {renderHighlightedMessage(notification.message)}
                 </p>
 
                 {!notification.isRead && (
                   <button
                     onClick={() => handleMarkAsRead(notification.id)}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-2"
+                    className="text-xs text-blue-600 hover:underline mt-2"
                   >
                     Mark as read
                   </button>

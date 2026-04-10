@@ -10,30 +10,34 @@ export interface Insight {
 
 const config: Record<
   InsightType,
-  { bg: string; border: string; iconColor: string; Icon: React.ElementType }
+  { bg: string; iconBg: string; iconColor: string; textColor: string; Icon: React.ElementType }
 > = {
   positive: {
     bg: "bg-green-50",
-    border: "border-green-200",
+    iconBg: "bg-green-100",
     iconColor: "text-green-600",
+    textColor: "text-green-800",
     Icon: TrendingUp,
   },
   danger: {
     bg: "bg-red-50",
-    border: "border-red-200",
+    iconBg: "bg-red-100",
     iconColor: "text-red-600",
+    textColor: "text-red-800",
     Icon: TrendingDown,
   },
   warning: {
     bg: "bg-amber-50",
-    border: "border-amber-200",
+    iconBg: "bg-amber-100",
     iconColor: "text-amber-600",
+    textColor: "text-amber-800",
     Icon: AlertTriangle,
   },
   info: {
     bg: "bg-blue-50",
-    border: "border-blue-200",
+    iconBg: "bg-blue-100",
     iconColor: "text-blue-600",
+    textColor: "text-blue-800",
     Icon: Info,
   },
 };
@@ -60,14 +64,14 @@ export default function InsightsPanel({ insights }: { insights: Insight[] }) {
           return (
             <div
               key={i}
-              className={`rounded-xl border p-4 ${c.bg} ${c.border}`}
+              className={`rounded-xl p-4 ${c.bg}`}
             >
               <div className="flex items-start gap-3">
-                <Icon
-                  className={`w-4 h-4 mt-0.5 shrink-0 ${c.iconColor}`}
-                />
+                <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${c.iconBg}`}>
+                  <Icon className={`w-4 h-4 ${c.iconColor}`} />
+                </div>
                 <div>
-                  <p className={`text-sm font-semibold ${c.iconColor}`}>
+                  <p className={`text-sm font-semibold ${c.textColor}`}>
                     {insight.title}
                   </p>
                   <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">

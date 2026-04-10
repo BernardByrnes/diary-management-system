@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     ? `from ${startDate}`
     : `this month (${today.toLocaleString("en-UG", { month: "long", year: "numeric" })})`;
 
-  const [
+const [
     branches,
     recentMilk,
     recentSales,
@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
     pendingTransfers,
     latestSnapshots,
     suppliers,
+    bankDeposits,
   ] = await Promise.all([
     prisma.branch.findMany({
       where: isED ? { isActive: true } : { id: { in: branchIds }, isActive: true },
@@ -73,12 +74,12 @@ export async function POST(req: NextRequest) {
       take: 30,
     }),
     isED
-      ? prisma.milkTransfer.findMany({
-          where: { status: "PENDING" },
-          select: { sourceBranch: { select: { name: true } }, destinationBranch: { select: { name: true } }, liters: true, createdAt: true },
-          take: 10,
-        })
-      : Promise.resolve([]),
+    ? prisma.milkTransfer.findMany({
+        where: { status: "PENDING" },
+        select: { sourceBranch: { select: { name: true } }, destinationBranch: { select: { name: true } }, liters: true, createdAt: true },
+        take: 10,
+      })
+    : Promise.resolve([]),
     prisma.stockSnapshot.findMany({
       where: { ...branchFilter },
       select: { branch: { select: { name: true } }, physicalLiters: true, computedLiters: true, varianceLiters: true, date: true, status: true },
@@ -90,6 +91,14 @@ export async function POST(req: NextRequest) {
       select: { name: true },
       take: 20,
     }),
+    isED
+    ? prisma.bankDeposit.findMany({
+        where: { date: { gte: monthStart, ...(periodEnd && { lte: periodEnd }) } },
+        select: { date: true, amount: true, bankName: true, referenceNumber: true, hasDiscrepancy: true, discrepancyNote: true, branch: { select: { name: true } } },
+        orderBy: { date: "desc" },
+        take: 50,
+      })
+    : Promise.resolve([]),
   ]);
 
   // --- Aggregate summaries ---
@@ -129,6 +138,14 @@ export async function POST(req: NextRequest) {
   const milkToday = recentMilk
     .filter((r) => new Date(r.date) >= today2 && new Date(r.date) < tomorrow)
     .reduce((s, r) => s + Number(r.liters), 0);
+
+  // Bank deposits summaries
+  const totalDepositsMonth = bankDeposits.reduce((s, r) => s + Number(r.amount), 0);
+  const depositsWithDiscrepancy = bankDeposits.filter((r) => r.hasDiscrepancy);
+  const depositsByBank = bankDeposits.reduce<Record<string, number>>((acc, r) => {
+    acc[r.bankName] = (acc[r.bankName] ?? 0) + Number(r.amount);
+    return acc;
+  }, {});
 
   // --- Build system prompt ---
   const systemPrompt = `You are an AI assistant for Bwera Cooperative Dairy Management System. You help ${user.fullName} (${user.role.replace("_", " ")}) understand and manage dairy operations.
@@ -176,6 +193,15 @@ ${latestSnapshots.slice(0, 5).map((s) => `- ${s.branch.name}: physical ${Number(
 
 SUPPLIERS (${suppliers.length}):
 ${suppliers.map((s) => `- ${s.name}`).join("\n")}
+
+${isED ? `BANK DEPOSITS (${periodLabel}) — ${bankDeposits.length} records:
+- Total deposited: UGX ${totalDepositsMonth.toLocaleString()}
+- By bank: ${Object.entries(depositsByBank).map(([k, v]) => `${k}: UGX ${v.toLocaleString()}`).join(", ")}
+- Deposits with discrepancies: ${depositsWithDiscrepancy.length}
+${depositsWithDiscrepancy.length > 0 ? `- ⚠️ DISCREPANCIES FOUND:
+${depositsWithDiscrepancy.map((d) => ` • ${new Date(d.date).toLocaleDateString("en-UG")} | ${d.branch.name} | ${d.bankName} | UGX ${Number(d.amount).toLocaleString()} | REF: ${d.referenceNumber} — ${d.discrepancyNote ?? "No details"}`).join("\n")}` : "- No discrepancies"}
+- Individual records:
+${bankDeposits.slice(0, 30).map((r) => ` • ${new Date(r.date).toLocaleDateString("en-UG")} | ${r.branch.name} | ${r.bankName} | UGX ${Number(r.amount).toLocaleString()} | REF: ${r.referenceNumber}${r.hasDiscrepancy ? " ⚠️ DISCREPANCY" : ""}`).join("\n")}` : ""}
 
 === INSTRUCTIONS ===
 - Answer questions about the dairy's operations using the data above.

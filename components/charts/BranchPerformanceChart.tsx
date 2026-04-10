@@ -100,7 +100,8 @@ export default function BranchPerformanceChart({ stats }: BranchPerformanceChart
       </div>
       <p className="text-xs text-gray-400 mb-5">UGX — hover bars for exact values</p>
 
-      <ResponsiveContainer width="100%" height={280}>
+      <div className="overflow-x-auto -mx-5 px-5">
+      <ResponsiveContainer width={Math.max(stats.length * 80, 100)} height={280}>
         <BarChart
           data={stats}
           margin={{ top: 4, right: 8, left: -8, bottom: 4 }}
@@ -155,6 +156,7 @@ export default function BranchPerformanceChart({ stats }: BranchPerformanceChart
           ))}
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }

@@ -40,7 +40,7 @@ export function NotificationDropdown({
       try {
         const response = await fetch('/api/notifications?limit=10')
         const data = await response.json()
-        setNotifications(data.notifications)
+        setNotifications(Array.isArray(data) ? data : data.notifications || [])
       } catch (error) {
         console.error('Failed to fetch notifications:', error)
       } finally {
@@ -60,10 +60,10 @@ export function NotificationDropdown({
     READING_OUT_OF_RANGE: Gauge
   }
 
-  const urgencyColors = {
-    HIGH: 'border-l-red-500 bg-red-50 dark:bg-red-950/10',
-    MEDIUM: 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-950/10',
-    LOW: 'border-l-blue-500 bg-blue-50 dark:bg-blue-950/10'
+  const iconColors = {
+    HIGH: 'bg-red-100 text-red-600',
+    MEDIUM: 'bg-yellow-100 text-yellow-600',
+    LOW: 'bg-blue-100 text-blue-600'
   }
 
   const handleMarkAsRead = async (notificationId: string) => {
@@ -72,9 +72,7 @@ export function NotificationDropdown({
         method: 'POST'
       })
 
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
-      )
+      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n))
     } catch (error) {
       console.error('Failed to mark as read:', error)
     }
@@ -92,17 +90,36 @@ export function NotificationDropdown({
     }
   }
 
+  const renderHighlightedMessage = (message: string) => {
+    const parts = message.split(/(\d+(?:\.\d+)?|[A-Z][a-zA-Z0-9_-]+)/g)
+    
+    return parts.map((part, i) => {
+      if (/^\d+(?:\.\d+)?$/.test(part)) {
+        return <span key={i} className="font-semibold text-gray-900">{part}</span>
+      }
+      if (/^(success|completed|approved|paid|clear|done)$/i.test(part)) {
+        return <span key={i} className="text-green-600">{part}</span>
+      }
+      if (/^(error|failed|overdue|missing|discrepancy)/i.test(part)) {
+        return <span key={i} className="text-red-600">{part}</span>
+      }
+      if (/^[A-Z][a-zA-Z0-9_-]{2,}$/.test(part)) {
+        return <span key={i} className="font-medium text-gray-900">{part}</span>
+      }
+      return part
+    })
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="absolute right-0 mt-2 w-96 max-h-[500px] overflow-hidden bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50"
+      className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <h3 className="font-semibold text-gray-900">
           Notifications
         </h3>
 
@@ -110,7 +127,7 @@ export function NotificationDropdown({
           {notifications.some(n => !n.isRead) && (
             <button
               onClick={handleMarkAllAsRead}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              className="text-xs text-blue-600 hover:underline"
             >
               Mark all read
             </button>
@@ -118,14 +135,13 @@ export function NotificationDropdown({
 
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            className="p-1 hover:bg-gray-100 rounded"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 text-gray-400" />
           </button>
         </div>
       </div>
 
-      {/* Notifications list */}
       <div className="overflow-y-auto max-h-[400px]">
         {loading ? (
           <div className="p-8 text-center">
@@ -134,70 +150,51 @@ export function NotificationDropdown({
         ) : notifications.length === 0 ? (
           <div className="p-8 text-center">
             <CheckCircle2 className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600">
               No notifications
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-100">
             {notifications.map((notification) => {
               const Icon = iconMap[notification.type] || AlertTriangle
-              const urgencyClass = urgencyColors[notification.urgency]
+              const iconColorClass = iconColors[notification.urgency]
 
               return (
                 <div
                   key={notification.id}
                   className={`
                     p-4
-                    border-l-4
-                    ${urgencyClass}
-                    ${notification.isRead ? 'opacity-60' : ''}
-                    hover:bg-gray-50 dark:hover:bg-gray-700/50
-                    transition-colors
+                    bg-white
+                    hover:bg-gray-50
+                    transition-colors duration-200
                     cursor-pointer
+                    ${notification.isRead ? 'opacity-60' : ''}
                   `}
-                  onClick={() => {
-                    handleMarkAsRead(notification.id)
-                  }}
+                  onClick={() => handleMarkAsRead(notification.id)}
                 >
                   <div className="flex items-start gap-3">
-                    {/* Icon */}
-                    <div className={`
-                      flex-shrink-0
-                      w-8 h-8
-                      rounded-full
-                      flex items-center justify-center
-                      ${notification.urgency === 'HIGH'
-                        ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                        : notification.urgency === 'MEDIUM'
-                        ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                      }
-                    `}>
-                      <Icon className="w-4 h-4" />
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${iconColorClass}`}>
+                      <Icon className="w-5 h-5" />
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <p className={`
-                        text-sm
-                        ${notification.isRead ? 'font-normal' : 'font-semibold'}
-                        text-gray-900 dark:text-gray-100
-                      `}>
-                        {notification.title}
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        {formatTimeAgo(new Date(notification.createdAt))}
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {notification.title}
+                        </p>
+                        {!notification.isRead && (
+                          <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                        )}
+                        <span className="text-xs text-gray-500 ml-auto">
+                          {formatTimeAgo(new Date(notification.createdAt))}
+                        </span>
+                      </div>
+
+                      <p className="text-sm text-gray-600 leading-relaxed mt-1 line-clamp-2">
+                        {renderHighlightedMessage(notification.message)}
                       </p>
                     </div>
-
-                    {/* Unread indicator */}
-                    {!notification.isRead && (
-                      <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full" />
-                    )}
                   </div>
                 </div>
               )
@@ -206,13 +203,12 @@ export function NotificationDropdown({
         )}
       </div>
 
-      {/* Footer */}
       {notifications.length > 0 && (
-        <div className="p-3 border-t border-gray-200 dark:border-gray-700 text-center">
+        <div className="p-3 border-t border-gray-200 text-center">
           <Link
             href="/dashboard/notifications"
             onClick={onClose}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            className="text-sm text-blue-600 hover:underline"
           >
             View all notifications
           </Link>

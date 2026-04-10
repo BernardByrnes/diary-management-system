@@ -6,6 +6,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Modal from "@/components/ui/Modal";
 import Toast, { type ToastMessage } from "@/components/ui/Toast";
+import { DiscrepancyTooltip } from "@/components/ui/Tooltip";
 import { bankDepositSchema, type BankDepositInput } from "@/lib/validations/bank-deposit";
 
 interface DepositRecord {
@@ -161,11 +162,15 @@ export default function BankingClient({ initialRecords, branchOptions, userRole 
                   </td>
                 </tr>
               ) : (
-                filtered.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50/70 transition-colors">
-                    <td className="px-5 py-3.5 text-gray-700">
-                      {new Date(r.date).toLocaleDateString()}
-                    </td>
+filtered.map((r) => (
+  <tr 
+    key={r.id} 
+    onClick={() => setEditTarget(r)}
+    className="hover:bg-gray-50/70 transition-colors cursor-pointer"
+  >
+    <td className="px-5 py-3.5 text-gray-700">
+      {new Date(r.date).toLocaleDateString()}
+    </td>
                     <td className="px-5 py-3.5 text-gray-600 hidden md:table-cell">
                       {r.branch.name}
                     </td>
@@ -178,16 +183,10 @@ export default function BankingClient({ initialRecords, branchOptions, userRole 
                     <td className="px-5 py-3.5 text-gray-500 font-mono text-xs hidden lg:table-cell">
                       {r.referenceNumber}
                     </td>
-                    <td className="px-5 py-3.5">
-                      {r.hasDiscrepancy ? (
-                        <span
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700"
-                          title={r.discrepancyNote ?? undefined}
-                        >
-                          <AlertTriangle className="w-3 h-3" />
-                          Discrepancy
-                        </span>
-                      ) : (
+<td className="px-5 py-3.5">
+              {r.hasDiscrepancy ? (
+                <DiscrepancyTooltip content={r.discrepancyNote ?? ""} />
+              ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">
                           <CheckCircle className="w-3 h-3" />
                           Clear
@@ -196,22 +195,22 @@ export default function BankingClient({ initialRecords, branchOptions, userRole 
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setEditTarget(r)}
-                          className="p-2.5 text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        {userRole === "EXECUTIVE_DIRECTOR" && (
-                          <button
-                            onClick={() => setDeleteTarget(r)}
-                            className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+<button
+              onClick={(e) => { e.stopPropagation(); setEditTarget(r); }}
+              className="p-2.5 text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+              title="Edit"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            {userRole === "EXECUTIVE_DIRECTOR" && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
+                className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
                       </div>
                     </td>
                   </tr>

@@ -47,7 +47,7 @@ export default function DashboardShell({
       {(role === "EXECUTIVE_DIRECTOR" || role === "MANAGER") && (
         <FloatingActions />
       )}
-      <AiChat />
+      {role === "EXECUTIVE_DIRECTOR" && <AiChat />}
     </div>
   );
 }
