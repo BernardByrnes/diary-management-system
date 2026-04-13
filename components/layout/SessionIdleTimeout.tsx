@@ -23,7 +23,7 @@ export default function SessionIdleTimeout() {
     setShowWarn(false);
     warnRef.current = setTimeout(() => setShowWarn(true), WARN_AT_MS);
     idleRef.current = setTimeout(() => {
-      void signOut({ callbackUrl: "/login?reason=session_expired" });
+      void signOut({ callbackUrl: "/auth/login?reason=session_expired" });
     }, IDLE_MS);
   }, []);
 

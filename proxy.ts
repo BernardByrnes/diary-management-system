@@ -5,12 +5,12 @@ import type { Role } from "@prisma/client";
 export default auth((req) => {
   const { nextUrl, auth: session } = req;
   const isLoggedIn = !!session?.user;
-  const isOnLogin = nextUrl.pathname.startsWith("/login");
+  const isOnLogin = nextUrl.pathname.startsWith("/auth/login");
   const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
 
   // Redirect unauthenticated users to login
   if (isOnDashboard && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", nextUrl));
+    return NextResponse.redirect(new URL("/auth/login", nextUrl));
   }
 
   // Redirect authenticated users away from login

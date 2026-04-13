@@ -64,7 +64,7 @@ export default function DashboardChangePasswordPage() {
         return;
       }
       reset();
-      await signOut({ callbackUrl: "/login" });
+      await signOut({ callbackUrl: "/auth/login" });
     } catch {
       showToast("error", "Something went wrong. Please try again.");
     }

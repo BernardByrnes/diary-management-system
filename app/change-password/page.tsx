@@ -37,7 +37,7 @@ export default function ChangePasswordPage() {
         return;
       }
 
-      await signOut({ callbackUrl: "/login" });
+      await signOut({ callbackUrl: "/auth/login" });
     } catch {
       setServerError("Something went wrong. Please try again.");
     } finally {

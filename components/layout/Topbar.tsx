@@ -61,7 +61,7 @@ export default function Topbar({ fullName, role, userId, onMenuToggle }: TopbarP
 
         {/* Logout */}
         <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => signOut({ callbackUrl: "/auth/login" })}
           className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"
           title="Log out"
         >
