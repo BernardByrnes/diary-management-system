@@ -101,6 +101,84 @@ const [
     : Promise.resolve([]),
   ]);
 
+  const [
+    recentSpoilage,
+    supplierPayments,
+    lactometerReadings,
+    advances,
+    distributions,
+    activeNotifications,
+  ] = await Promise.all([
+    prisma.milkSpoilage.findMany({
+      where: { ...branchFilter, date: { gte: monthStart, ...(periodEnd && { lte: periodEnd }) } },
+      select: { date: true, liters: true, reason: true, status: true, branch: { select: { name: true } } },
+      orderBy: { date: "desc" },
+      take: 30,
+    }),
+    isED
+      ? prisma.supplierPayment.findMany({
+          where: {},
+          select: {
+            status: true, grossAmount: true, netAmount: true, advanceDeductions: true,
+            scheduledDate: true, paidAt: true, periodStart: true, periodEnd: true,
+            supplier: { select: { name: true } },
+          },
+          orderBy: { periodEnd: "desc" },
+          take: 30,
+        })
+      : Promise.resolve([]),
+    prisma.lactometerReading.findMany({
+      where: { ...branchFilter, date: { gte: monthStart, ...(periodEnd && { lte: periodEnd }) } },
+      select: { date: true, readingValue: true, notes: true, branch: { select: { name: true } } },
+      orderBy: { date: "desc" },
+      take: 50,
+    }),
+    isED
+      ? prisma.advance.findMany({
+          where: {},
+          select: {
+            amount: true, isDeducted: true, date: true, purpose: true, recipientType: true,
+            supplier: { select: { name: true } },
+            branch: { select: { name: true } },
+            recordedBy: { select: { fullName: true } },
+          },
+          orderBy: { date: "desc" },
+          take: 30,
+        })
+      : prisma.advance.findMany({
+          where: { branchId: { in: branchIds } },
+          select: {
+            amount: true, isDeducted: true, date: true, purpose: true, recipientType: true,
+            supplier: { select: { name: true } },
+            branch: { select: { name: true } },
+            recordedBy: { select: { fullName: true } },
+          },
+          orderBy: { date: "desc" },
+          take: 20,
+        }),
+    isED
+      ? prisma.profitDistribution.findMany({
+          where: { createdAt: { gte: monthStart } },
+          select: {
+            netPayout: true, status: true, periodStart: true, periodEnd: true,
+            grossProfit: true, advanceDeductions: true,
+            branch: { select: { name: true } },
+            owner: { select: { fullName: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        })
+      : Promise.resolve([]),
+    isED
+      ? prisma.notification.findMany({
+          where: { isRead: false },
+          select: { title: true, message: true, urgency: true, type: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+          take: 15,
+        })
+      : Promise.resolve([]),
+  ]);
+
   // --- Aggregate summaries ---
   const totalMilkMonth = recentMilk.reduce((s, r) => s + Number(r.liters), 0);
   const totalMilkCostMonth = recentMilk.reduce((s, r) => s + Number(r.totalCost), 0);
@@ -190,6 +268,34 @@ ${pendingTransfers.length > 0 ? `PENDING TRANSFERS: ${pendingTransfers.length} t
 
 RECENT STOCK SNAPSHOTS:
 ${latestSnapshots.slice(0, 5).map((s) => `- ${s.branch.name}: physical ${Number(s.physicalLiters).toFixed(1)}L, computed ${Number(s.computedLiters).toFixed(1)}L, variance ${Number(s.varianceLiters).toFixed(1)}L (${s.status})`).join("\n")}
+
+MILK SPOILAGE (${periodLabel}) — ${recentSpoilage.length} records:
+${recentSpoilage.length === 0 ? "- No spoilage recorded this period" : `- Total spoiled (approved): ${recentSpoilage.filter(s => s.status === "APPROVED").reduce((sum, s) => sum + Number(s.liters), 0).toFixed(1)}L
+- Pending approval: ${recentSpoilage.filter(s => s.status === "PENDING").length} record(s)
+- Individual records:
+${recentSpoilage.map((s) => `  • ${new Date(s.date).toLocaleDateString("en-UG")} | ${s.branch.name} | ${Number(s.liters).toFixed(1)}L | ${s.status} — ${s.reason}`).join("\n")}`}
+
+LACTOMETER READINGS (${periodLabel}) — ${lactometerReadings.length} records:
+${lactometerReadings.length === 0 ? "- No readings this period" : `- Individual records:
+${lactometerReadings.slice(0, 20).map((r) => `  • ${new Date(r.date).toLocaleDateString("en-UG")} | ${r.branch.name} | ${Number(r.readingValue).toFixed(3)}${r.notes ? ` — ${r.notes}` : ""}`).join("\n")}`}
+
+${isED ? `SUPPLIER PAYMENTS — ${supplierPayments.length} records:
+- Paid: ${supplierPayments.filter(p => p.status === "PAID").length} | Approved (pending payment): ${supplierPayments.filter(p => p.status === "APPROVED").length} | Overdue: ${supplierPayments.filter(p => p.status !== "PAID" && p.scheduledDate && new Date(p.scheduledDate) < new Date()).length}
+- Total paid out (net): UGX ${supplierPayments.filter(p => p.status === "PAID").reduce((s, p) => s + Number(p.netAmount), 0).toLocaleString()}
+- Outstanding (approved): UGX ${supplierPayments.filter(p => p.status === "APPROVED").reduce((s, p) => s + Number(p.netAmount), 0).toLocaleString()}
+${supplierPayments.slice(0, 15).map((p) => `  • ${p.supplier.name} | gross UGX ${Number(p.grossAmount).toLocaleString()} | net UGX ${Number(p.netAmount).toLocaleString()} | ${p.status}${p.scheduledDate ? ` | due ${new Date(p.scheduledDate).toLocaleDateString("en-UG")}` : ""}`).join("\n")}` : ""}
+
+ADVANCES — ${advances.length} records:
+- Not yet deducted: ${advances.filter(a => !a.isDeducted).length} | Deducted: ${advances.filter(a => a.isDeducted).length}
+- Total not-yet-deducted: UGX ${advances.filter(a => !a.isDeducted).reduce((s, a) => s + Number(a.amount), 0).toLocaleString()}
+${advances.slice(0, 15).map((a) => `  • ${a.supplier?.name ?? a.recipientType} | UGX ${Number(a.amount).toLocaleString()} | ${a.isDeducted ? "deducted" : "outstanding"} | ${new Date(a.date).toLocaleDateString("en-UG")} | ${a.purpose}${a.branch ? ` | ${a.branch.name}` : ""}`).join("\n")}
+
+${isED && distributions.length > 0 ? `PROFIT DISTRIBUTIONS (this month) — ${distributions.length} records:
+- Total distributed (net payout): UGX ${distributions.reduce((s, d) => s + Number(d.netPayout), 0).toLocaleString()}
+${distributions.map((d) => `  • ${d.branch.name} | ${d.owner.fullName} | gross UGX ${Number(d.grossProfit).toLocaleString()} | net UGX ${Number(d.netPayout).toLocaleString()} | ${d.status}`).join("\n")}` : ""}
+
+${isED && activeNotifications.length > 0 ? `ACTIVE UNREAD ALERTS (${activeNotifications.length}):
+${activeNotifications.map((n) => `  • [${n.urgency}] ${n.title} — ${n.message}`).join("\n")}` : ""}
 
 SUPPLIERS (${suppliers.length}):
 ${suppliers.map((s) => `- ${s.name}`).join("\n")}

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth/auth";
 import { prisma } from "@/lib/db/prisma";
 import { PackageSearch } from "lucide-react";
 import StockSnapshotsClient from "@/components/stock-snapshots/StockSnapshotsClient";
+import { getBranchAvailableLiters } from "@/lib/utils/stock";
 
 export default async function StockSnapshotsPage() {
   const session = await auth();
@@ -50,6 +51,33 @@ export default async function StockSnapshotsPage() {
   });
   const varianceThreshold = Number(settings?.stockVarianceThreshold ?? 5);
 
+  // Fetch live stock for each branch (ED only — used for branch overview cards)
+  const liveStockMap: Record<string, number> = {};
+  if (isED) {
+    await Promise.all(
+      branchOptions.map(async (b) => {
+        liveStockMap[b.id] = await getBranchAvailableLiters(b.id);
+      })
+    );
+  }
+
+  // Fetch last approved snapshot per branch for "Last Physical Count"
+  const lastSnapshotMap: Record<string, { physicalLiters: number; date: string } | null> = {};
+  if (isED) {
+    await Promise.all(
+      branchOptions.map(async (b) => {
+        const snap = await prisma.stockSnapshot.findFirst({
+          where: { branchId: b.id, status: "APPROVED" },
+          orderBy: { date: "desc" },
+          select: { physicalLiters: true, date: true },
+        });
+        lastSnapshotMap[b.id] = snap
+          ? { physicalLiters: Number(snap.physicalLiters), date: snap.date.toISOString() }
+          : null;
+      })
+    );
+  }
+
   const serialized = snapshots.map((s) => ({
     ...s,
     date: s.date.toISOString(),
@@ -81,6 +109,8 @@ export default async function StockSnapshotsPage() {
         userRole={user.role}
         managedBranchIds={managedBranchIds}
         varianceThreshold={varianceThreshold}
+        liveStockMap={liveStockMap}
+        lastSnapshotMap={lastSnapshotMap}
       />
     </div>
   );

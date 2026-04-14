@@ -56,6 +56,8 @@ interface Props {
   userRole: string;
   managedBranchIds: string[];
   varianceThreshold: number;
+  liveStockMap?: Record<string, number>;
+  lastSnapshotMap?: Record<string, { physicalLiters: number; date: string } | null>;
 }
 
 const snapshotSchema = z.object({
@@ -82,6 +84,8 @@ export default function StockSnapshotsClient({
   userRole,
   managedBranchIds,
   varianceThreshold,
+  liveStockMap = {},
+  lastSnapshotMap = {},
 }: Props) {
   const [records, setRecords] = useState<SnapshotRecord[]>(initialRecords);
   const [search, setSearch] = useState("");
@@ -367,42 +371,72 @@ export default function StockSnapshotsClient({
         {/* ED Stock Cards */}
         {isED && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {branchStocks.map((stock) => (
-              <button
-                key={stock.branchId}
-                onClick={() => stock.snapshotId && openBreakdown(stock.snapshotId, stock.branchName)}
-                disabled={!stock.snapshotId}
-                className={`rounded-2xl p-5 border transition-all text-left ${
-                  stock.snapshotId
-                    ? "bg-white border-gray-100 hover:border-green-400 hover:shadow-md cursor-pointer"
-                    : "bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed"
-                }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-                      <Droplet className="w-4 h-4 text-green-700" />
+            {branchStocks.map((stock) => {
+                const liveStock = liveStockMap[stock.branchId] ?? 0;
+                const lastSnap = lastSnapshotMap[stock.branchId] ?? null;
+                const variance = lastSnap ? liveStock - lastSnap.physicalLiters : null;
+                const absVariance = variance !== null ? Math.abs(variance) : null;
+                const varianceHigh = absVariance !== null && absVariance > varianceThreshold;
+                const lastCountDaysAgo = lastSnap
+                  ? Math.floor((Date.now() - new Date(lastSnap.date).getTime()) / 86400000)
+                  : null;
+                const countStale = lastCountDaysAgo !== null && lastCountDaysAgo > 1;
+                return (
+                  <button
+                    key={stock.branchId}
+                    onClick={() => stock.snapshotId && openBreakdown(stock.snapshotId, stock.branchName)}
+                    disabled={!stock.snapshotId}
+                    className={`rounded-2xl p-5 border transition-all text-left ${
+                      varianceHigh
+                        ? "bg-white border-red-200 hover:border-red-400 hover:shadow-md cursor-pointer"
+                        : stock.snapshotId
+                        ? "bg-white border-gray-100 hover:border-green-400 hover:shadow-md cursor-pointer"
+                        : "bg-gray-50 border-gray-200 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${varianceHigh ? "bg-red-100" : "bg-green-100"}`}>
+                          <Droplet className={`w-4 h-4 ${varianceHigh ? "text-red-600" : "text-green-700"}`} />
+                        </div>
+                        <h3 className="font-semibold text-gray-900 text-sm">{stock.branchName}</h3>
+                      </div>
+                      {stock.snapshotId && <ChevronRight className="w-5 h-5 text-gray-400" />}
                     </div>
-                    <h3 className="font-semibold text-gray-900 text-sm">{stock.branchName}</h3>
-                  </div>
-                  {stock.snapshotId && <ChevronRight className="w-5 h-5 text-gray-400" />}
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Computed Stock</p>
-                    <p className="text-2xl font-bold text-green-700">{stock.computed.toFixed(1)} L</p>
-                  </div>
-                  {stock.lastUpdated && (
-                    <p className="text-xs text-gray-400">
-                      Last: {new Date(stock.lastUpdated).toLocaleDateString()}
-                    </p>
-                  )}
-                  {!stock.snapshotId && (
-                    <p className="text-xs text-gray-500 italic">No approved snapshots yet</p>
-                  )}
-                </div>
-              </button>
-            ))}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-400 font-medium mb-1">Live Stock</p>
+                        <p className="text-xl font-bold text-green-700">{liveStock.toFixed(1)}<span className="text-xs font-normal text-gray-400 ml-0.5">L</span></p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 font-medium mb-1">Last Count</p>
+                        {lastSnap ? (
+                          <>
+                            <p className={`text-xl font-bold ${countStale ? "text-amber-600" : "text-gray-800"}`}>
+                              {lastSnap.physicalLiters.toFixed(1)}<span className="text-xs font-normal text-gray-400 ml-0.5">L</span>
+                            </p>
+                            <p className={`text-xs mt-0.5 ${countStale ? "text-amber-500" : "text-gray-400"}`}>
+                              {lastCountDaysAgo === 0 ? "Today" : lastCountDaysAgo === 1 ? "Yesterday" : `${lastCountDaysAgo}d ago`}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-gray-400 italic mt-1">No count yet</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 font-medium mb-1">Variance</p>
+                        {variance !== null ? (
+                          <p className={`text-xl font-bold ${varianceHigh ? "text-red-600" : "text-gray-500"}`}>
+                            {variance >= 0 ? "+" : ""}{variance.toFixed(1)}<span className="text-xs font-normal ml-0.5">L</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400 italic mt-1">—</p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+            })}
           </div>
         )}
 
