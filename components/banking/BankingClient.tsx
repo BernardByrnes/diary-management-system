@@ -418,6 +418,11 @@ function DepositFormModal({
           )}
         </div>
 
+        {/* Cash expense warning */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 text-xs text-amber-800">
+          <span className="font-semibold">Before logging this deposit</span> — make sure all cash expenses paid out today (e.g. maintenance, transport) are already recorded. Cash expenses reduce the expected deposit amount; recording them later will not clear a variance flag.
+        </div>
+
         {/* Amount */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1.5">Amount (UGX)</label>

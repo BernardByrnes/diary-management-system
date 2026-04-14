@@ -1,5 +1,6 @@
 import { prisma, withDbRetry } from "@/lib/db/prisma";
 import type { NotificationType, NotificationUrgency } from "@prisma/client";
+import { sendTelegramAlert } from "./telegram";
 
 export async function createNotification({
   type,
@@ -36,7 +37,7 @@ export async function createNotification({
     if (existing) return existing;
   }
 
-  return await withDbRetry(() =>
+  const notification = await withDbRetry(() =>
     prisma.notification.create({
       data: {
         type,
@@ -49,6 +50,13 @@ export async function createNotification({
       },
     })
   );
+
+  // Send Telegram push for HIGH urgency notifications
+  if (urgency === "HIGH") {
+    await sendTelegramAlert(title, message);
+  }
+
+  return notification;
 }
 
 // Find the Executive Director user id
@@ -71,26 +79,35 @@ export async function checkAndCreateNotifications(userId: string) {
   // Only run heavy checks for ED (others get targeted notifications at point-of-action)
   if (userId !== edId) return;
 
-  // Check: rent expense not recorded this month (run after 5th of month)
-  if (now.getDate() > 5) {
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const rentExpense = await withDbRetry(() =>
-      prisma.expense.findFirst({
-        where: { category: "RENT", date: { gte: monthStart } },
-      })
-    );
-    if (!rentExpense) {
-      const monthKey = `${now.getFullYear()}-${now.getMonth()}`;
-      await createNotification({
-        type: "RENT_DUE",
-        title: "Rent Not Recorded",
-        message: `No rent expense has been recorded for ${now.toLocaleString("default", { month: "long", year: "numeric" })}.`,
-        urgency: "MEDIUM",
-        userId: edId,
-        relatedEntityType: "expense",
-        relatedEntityId: monthKey,
-      });
-    }
+  // Check: rent expiring within 30 days, or never recorded
+  const in30Days = new Date(now);
+  in30Days.setDate(in30Days.getDate() + 30);
+  const rentBranches = await withDbRetry(() =>
+    prisma.branch.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { rentPaidUntil: null },
+          { rentPaidUntil: { lte: in30Days } },
+        ],
+      },
+      select: { id: true, name: true, rentPaidUntil: true },
+    })
+  );
+  for (const branch of rentBranches) {
+    const expiryLabel = branch.rentPaidUntil
+      ? `expires on ${new Date(branch.rentPaidUntil).toLocaleDateString()}`
+      : "has never been recorded";
+    const entityKey = `rent-${branch.id}-${in30Days.toISOString().split("T")[0]}`;
+    await createNotification({
+      type: "RENT_DUE",
+      title: "Rent Renewal Required",
+      message: `Rent for ${branch.name} ${expiryLabel}. Please record the next rent payment.`,
+      urgency: "HIGH",
+      userId: edId,
+      relatedEntityType: "branch",
+      relatedEntityId: entityKey,
+    });
   }
 
   // Check: overdue supplier payments

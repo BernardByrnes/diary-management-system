@@ -48,8 +48,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const { date, branchId, category, description, amount, paymentMethod, receiptReference } =
+  const { date, branchId, category, description, amount, paymentMethod, receiptReference, coverageMonths } =
     parsed.data;
+
+  // Only ED can record rent expenses
+  if (category === "RENT" && user.role !== "EXECUTIVE_DIRECTOR") {
+    return NextResponse.json(
+      { error: "Only the Executive Director can record rent expenses." },
+      { status: 403 }
+    );
+  }
 
   // MANAGER: verify the branch is one they manage
   if (user.role === "MANAGER") {
@@ -86,12 +94,22 @@ export async function POST(request: Request) {
     },
   });
 
+  // When ED records rent, update the branch's rentPaidUntil
+  if (category === "RENT" && coverageMonths) {
+    const paidUntil = new Date(date);
+    paidUntil.setMonth(paidUntil.getMonth() + coverageMonths);
+    await prisma.branch.update({
+      where: { id: branchId },
+      data: { rentPaidUntil: paidUntil },
+    });
+  }
+
   await createAuditLog({
     action: "CREATE",
     entityType: "Expense",
     entityId: expense.id,
     userId: user.id,
-    changes: { date, branchId, category, description, amount, paymentMethod, receiptReference },
+    changes: { date, branchId, category, description, amount, paymentMethod, receiptReference, coverageMonths },
   });
 
   return NextResponse.json(expense, { status: 201 });

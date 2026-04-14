@@ -55,6 +55,25 @@ function renderContent(text: string) {
     // Empty line → spacing
     if (line.trim() === "") {
       output.push(<div key={key++} className="h-1" />);
+    // ### heading
+    } else if (line.startsWith("### ")) {
+      output.push(<p key={key++} className="text-sm font-bold text-gray-800 mt-3 mb-1">{renderInline(line.slice(4))}</p>);
+    // ## heading
+    } else if (line.startsWith("## ")) {
+      output.push(<p key={key++} className="text-sm font-bold text-gray-900 mt-3 mb-1 border-b border-gray-200 pb-1">{renderInline(line.slice(3))}</p>);
+    // # heading
+    } else if (line.startsWith("# ")) {
+      output.push(<p key={key++} className="text-sm font-bold text-gray-900 mt-3 mb-1">{renderInline(line.slice(2))}</p>);
+    // bullet list
+    } else if (/^(\s*[-*]|\s*\d+\.) /.test(line)) {
+      const indent = line.match(/^(\s*)/)?.[1].length ?? 0;
+      const content = line.replace(/^\s*[-*\d.]+\s/, "");
+      output.push(
+        <div key={key++} className="flex gap-1.5" style={{ paddingLeft: `${indent * 4 + 8}px` }}>
+          <span className="text-gray-400 mt-0.5 shrink-0">•</span>
+          <span>{renderInline(content)}</span>
+        </div>
+      );
     } else {
       output.push(<div key={key++}>{renderInline(line)}</div>);
     }

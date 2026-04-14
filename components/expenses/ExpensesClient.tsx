@@ -400,6 +400,7 @@ export default function ExpensesClient({
         defaultRentCycle={defaultRentCycle}
         saving={saving}
         setSaving={setSaving}
+        userRole={userRole}
         onSuccess={(newRecord) => {
           setRecords((prev) => [newRecord, ...prev]);
           setAddOpen(false);
@@ -418,6 +419,7 @@ export default function ExpensesClient({
           saving={saving}
           setSaving={setSaving}
           editRecord={editTarget}
+          userRole={userRole}
           onSuccess={(updated) => {
             setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
             setEditTarget(null);
@@ -473,6 +475,7 @@ interface ExpenseFormModalProps {
   editRecord?: ExpenseRecord;
   onSuccess: (record: ExpenseRecord) => void;
   onError: (msg: string) => void;
+  userRole: string;
 }
 
 function ExpenseFormModal({
@@ -485,6 +488,7 @@ function ExpenseFormModal({
   editRecord,
   onSuccess,
   onError,
+  userRole,
 }: ExpenseFormModalProps) {
   const {
     register,
@@ -511,10 +515,16 @@ function ExpenseFormModal({
   const branchIdWatch = watch("branchId");
   const effectiveRentCycle =
     branchOptions.find((b) => b.id === branchIdWatch)?.rentCycle ?? null;
-  const rentHint =
-    effectiveRentCycle === "BI_ANNUAL" || (!effectiveRentCycle && defaultRentCycle === "BI_ANNUAL")
-      ? "Rent is typically paid every six months for this branch (or org default). Record the full period amount when paid."
-      : "Rent is typically paid once per year for this branch (or org default). Record the full annual amount when paid.";
+  const isAnnual =
+    effectiveRentCycle === "ANNUAL" || (!effectiveRentCycle && defaultRentCycle === "ANNUAL");
+  const rentHint = isAnnual
+    ? "Rent is typically paid once per year for this branch. Record the full annual amount when paid."
+    : "Rent is typically paid every six months for this branch. Record the full period amount when paid.";
+  const [coverageMonths, setCoverageMonths] = useState<number>(isAnnual ? 12 : 6);
+
+  const visibleCategories = userRole === "MANAGER"
+    ? EXPENSE_CATEGORIES.filter((c) => c !== "RENT")
+    : EXPENSE_CATEGORIES;
 
   const onSubmit = async (data: ExpenseInput) => {
     setSaving(true);
@@ -525,7 +535,10 @@ function ExpenseFormModal({
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          ...(data.category === "RENT" ? { coverageMonths } : {}),
+        }),
       });
 
       const json = await res.json();
@@ -601,7 +614,7 @@ function ExpenseFormModal({
             {...register("category")}
             className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400 bg-white"
           >
-            {EXPENSE_CATEGORIES.map((cat) => (
+            {visibleCategories.map((cat) => (
               <option key={cat} value={cat}>
                 {CATEGORY_LABELS[cat] ?? cat}
               </option>
@@ -611,9 +624,24 @@ function ExpenseFormModal({
             <p className="mt-1 text-xs text-red-500">{errors.category.message}</p>
           )}
           {categoryWatch === "RENT" && (
-            <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-              {rentHint} Profit reports still use monthly proration from recorded rent expenses.
-            </p>
+            <>
+              <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                {rentHint} Profit reports still use monthly proration from recorded rent expenses.
+              </p>
+              <div className="mt-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  Coverage Period
+                </label>
+                <select
+                  value={coverageMonths}
+                  onChange={(e) => setCoverageMonths(Number(e.target.value))}
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400 bg-white"
+                >
+                  <option value={6}>6 months (bi-annual)</option>
+                  <option value={12}>12 months (annual)</option>
+                </select>
+              </div>
+            </>
           )}
         </div>
 

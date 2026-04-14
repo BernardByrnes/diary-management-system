@@ -123,7 +123,9 @@ model Branch {
   isActive  Boolean  @default(true)
   ownerId   String
   /// ANNUAL | BI_ANNUAL — how often rent is paid for this branch; null = use org default in settings
-  rentCycle String?
+  rentCycle     String?
+  /// Date rent coverage expires — set when ED records a RENT expense
+  rentPaidUntil DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

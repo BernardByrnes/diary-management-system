@@ -20,6 +20,8 @@ export const expenseSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
   paymentMethod: z.enum(PAYMENT_METHODS),
   receiptReference: z.string().optional(),
+  // Only used when category === "RENT" — number of months the payment covers
+  coverageMonths: z.number().int().positive().optional(),
 });
 
 export const updateExpenseSchema = expenseSchema.partial();
