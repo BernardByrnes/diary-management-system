@@ -19,19 +19,11 @@ export async function createNotification({
   relatedEntityType?: string;
   relatedEntityId?: string;
 }) {
-  // Deduplicate: don't create same type+entityId notification on same day
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
+  // Deduplicate: don't create the same type+entityId notification more than once
   if (relatedEntityId) {
     const existing = await withDbRetry(() =>
       prisma.notification.findFirst({
-        where: {
-          userId,
-          type,
-          relatedEntityId,
-          createdAt: { gte: today },
-        },
+        where: { userId, type, relatedEntityId },
       })
     );
     if (existing) return existing;
@@ -79,35 +71,70 @@ export async function checkAndCreateNotifications(userId: string) {
   // Only run heavy checks for ED (others get targeted notifications at point-of-action)
   if (userId !== edId) return;
 
-  // Check: rent expiring within 30 days, or never recorded
+  // Check: rent expiring — notify at 60 days and 30 days before expiry, or never recorded
+  const in60Days = new Date(now);
+  in60Days.setDate(in60Days.getDate() + 60);
   const in30Days = new Date(now);
   in30Days.setDate(in30Days.getDate() + 30);
+
   const rentBranches = await withDbRetry(() =>
     prisma.branch.findMany({
       where: {
         isActive: true,
         OR: [
           { rentPaidUntil: null },
-          { rentPaidUntil: { lte: in30Days } },
+          { rentPaidUntil: { lte: in60Days } },
         ],
       },
       select: { id: true, name: true, rentPaidUntil: true },
     })
   );
+
   for (const branch of rentBranches) {
-    const expiryLabel = branch.rentPaidUntil
-      ? `expires on ${new Date(branch.rentPaidUntil).toLocaleDateString()}`
-      : "has never been recorded";
-    const entityKey = `rent-${branch.id}-${in30Days.toISOString().split("T")[0]}`;
-    await createNotification({
-      type: "RENT_DUE",
-      title: "Rent Renewal Required",
-      message: `Rent for ${branch.name} ${expiryLabel}. Please record the next rent payment.`,
-      urgency: "HIGH",
-      userId: edId,
-      relatedEntityType: "branch",
-      relatedEntityId: entityKey,
-    });
+    if (!branch.rentPaidUntil) {
+      // Never recorded — fire once per week using week key
+      const weekKey = `rent-never-${branch.id}-week-${now.toISOString().slice(0, 10)}`;
+      await createNotification({
+        type: "RENT_DUE",
+        title: "Rent Not Recorded",
+        message: `Rent for ${branch.name} has never been recorded. Please log the current rent payment.`,
+        urgency: "HIGH",
+        userId: edId,
+        relatedEntityType: "branch",
+        relatedEntityId: weekKey,
+      });
+      continue;
+    }
+
+    const expiryDate = new Date(branch.rentPaidUntil);
+    const expiryLabel = expiryDate.toLocaleDateString();
+    const isWithin30 = expiryDate <= in30Days;
+
+    if (isWithin30) {
+      // 1-month warning
+      const monthKey = `rent-30d-${branch.id}-${in30Days.toISOString().slice(0, 7)}`;
+      await createNotification({
+        type: "RENT_DUE",
+        title: "Rent Expiring in 1 Month",
+        message: `Rent for ${branch.name} expires on ${expiryLabel} — 1 month remaining. Please arrange the next payment.`,
+        urgency: "HIGH",
+        userId: edId,
+        relatedEntityType: "branch",
+        relatedEntityId: monthKey,
+      });
+    } else {
+      // 2-month warning
+      const monthKey = `rent-60d-${branch.id}-${in60Days.toISOString().slice(0, 7)}`;
+      await createNotification({
+        type: "RENT_DUE",
+        title: "Rent Expiring in 2 Months",
+        message: `Rent for ${branch.name} expires on ${expiryLabel} — 2 months remaining. Plan the next payment.`,
+        urgency: "MEDIUM",
+        userId: edId,
+        relatedEntityType: "branch",
+        relatedEntityId: monthKey,
+      });
+    }
   }
 
   // Check: overdue supplier payments

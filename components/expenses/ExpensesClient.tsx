@@ -626,7 +626,7 @@ function ExpenseFormModal({
           {categoryWatch === "RENT" && (
             <>
               <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                {rentHint} Profit reports still use monthly proration from recorded rent expenses.
+                {rentHint}
               </p>
               <div className="mt-2">
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">
