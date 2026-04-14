@@ -70,6 +70,7 @@ enum NotificationType {
   READING_OUT_OF_RANGE
   ADVANCE_LIMIT
   SNAPSHOT_PENDING
+  SPOILAGE_PENDING
 }
 
 enum SnapshotStatus {
@@ -114,6 +115,8 @@ model User {
   auditLogs            AuditLog[]
   recordedSnapshots    StockSnapshot[]     @relation("SnapshotRecorder")
   reviewedSnapshots    StockSnapshot[]     @relation("SnapshotReviewer")
+  reportedSpoilages    MilkSpoilage[]      @relation("SpoilageReporter")
+  reviewedSpoilages    MilkSpoilage[]      @relation("SpoilageReviewer")
 }
 
 model Branch {
@@ -141,6 +144,7 @@ model Branch {
   advances            Advance[]
   profitDistributions ProfitDistribution[]
   stockSnapshots      StockSnapshot[]
+  spoilages           MilkSpoilage[]
 }
 
 model BranchManager {
@@ -271,6 +275,24 @@ model MilkTransfer {
   destinationBranch Branch @relation("DestinationBranch", fields: [destinationBranchId], references: [id])
   requestedBy       User   @relation("TransferRequester", fields: [requestedById], references: [id])
   approvedBy        User?  @relation("TransferApprover", fields: [approvedById], references: [id])
+}
+
+model MilkSpoilage {
+  id           String         @id @default(cuid())
+  date         DateTime
+  liters       Decimal        @db.Decimal(10, 1)
+  reason       String
+  status       TransferStatus @default(PENDING)
+  branchId     String
+  reportedById String
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  branch     Branch @relation(fields: [branchId], references: [id])
+  reportedBy User   @relation("SpoilageReporter", fields: [reportedById], references: [id])
+  reviewedBy User?  @relation("SpoilageReviewer", fields: [reviewedById], references: [id])
 }
 
 model BankDeposit {

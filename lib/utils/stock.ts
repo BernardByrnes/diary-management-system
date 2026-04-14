@@ -40,7 +40,7 @@ export async function getBranchAvailableLiters(branchId: string): Promise<number
     dateFilter = { gte: nextDay };
   }
 
-  const [supply, transferIn, transferOut, sold] = await Promise.all([
+  const [supply, transferIn, transferOut, sold, spoiled] = await Promise.all([
     prisma.milkSupply.aggregate({
       where: { branchId, ...(dateFilter ? { date: dateFilter } : {}) },
       _sum: { liters: true },
@@ -65,12 +65,22 @@ export async function getBranchAvailableLiters(branchId: string): Promise<number
       where: { branchId, ...(dateFilter ? { date: dateFilter } : {}) },
       _sum: { litersSold: true },
     }),
+    prisma.milkSpoilage.aggregate({
+      where: {
+        branchId,
+        status: "APPROVED",
+        ...(dateFilter ? { date: dateFilter } : {}),
+      },
+      _sum: { liters: true },
+    }),
   ]);
 
   const inL =
     Number(supply._sum.liters ?? 0) + Number(transferIn._sum.liters ?? 0);
   const outL =
-    Number(sold._sum.litersSold ?? 0) + Number(transferOut._sum.liters ?? 0);
+    Number(sold._sum.litersSold ?? 0) +
+    Number(transferOut._sum.liters ?? 0) +
+    Number(spoiled._sum.liters ?? 0);
   return baseStock + inL - outL;
 }
 

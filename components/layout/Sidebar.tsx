@@ -25,6 +25,7 @@ import {
   ClipboardList,
   ShieldCheck,
   PackageSearch,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,6 +57,7 @@ const navSections: Record<Role, NavSection[]> = {
         { href: "/dashboard/expenses", label: "Expenses", icon: Receipt },
         { href: "/dashboard/advances", label: "Advances", icon: Wallet },
         { href: "/dashboard/transfers", label: "Transfers", icon: ArrowLeftRight },
+        { href: "/dashboard/spoilage", label: "Spoilage", icon: AlertTriangle },
         { href: "/dashboard/banking", label: "Banking", icon: Landmark },
         { href: "/dashboard/stock-snapshots", label: "Stock Counts", icon: PackageSearch },
       ],
@@ -97,6 +99,7 @@ const navSections: Record<Role, NavSection[]> = {
         { href: "/dashboard/banking", label: "Banking", icon: Landmark },
         { href: "/dashboard/lactometer", label: "Lactometer", icon: FlaskConical },
         { href: "/dashboard/transfers", label: "Transfers", icon: ArrowLeftRight },
+        { href: "/dashboard/spoilage", label: "Spoilage", icon: AlertTriangle },
         { href: "/dashboard/stock-snapshots", label: "Stock Counts", icon: PackageSearch },
       ],
     },
