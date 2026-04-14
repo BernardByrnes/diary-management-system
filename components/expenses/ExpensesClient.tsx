@@ -68,6 +68,7 @@ export default function ExpensesClient({
   const [records, setRecords] = useState<ExpenseRecord[]>(initialRecords);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [branchFilter, setBranchFilter] = useState<string>("ALL");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -91,10 +92,11 @@ export default function ExpensesClient({
       r.description.toLowerCase().includes(search.toLowerCase()) ||
       r.branch.name.toLowerCase().includes(search.toLowerCase());
     const matchCategory = categoryFilter === "ALL" || r.category === categoryFilter;
+    const matchBranch = branchFilter === "ALL" || r.branch.id === branchFilter;
     const rDate = r.date.slice(0, 10);
     const matchFrom = !dateFrom || rDate >= dateFrom;
     const matchTo = !dateTo || rDate <= dateTo;
-    return matchSearch && matchCategory && matchFrom && matchTo;
+    return matchSearch && matchCategory && matchBranch && matchFrom && matchTo;
   });
 
   async function handleFlag(record: ExpenseRecord) {
@@ -172,6 +174,18 @@ export default function ExpensesClient({
               className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
             />
           </div>
+          {branchOptions.length > 1 && (
+            <select
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+              className="py-2 px-3 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
+            >
+              <option value="ALL">All Branches</option>
+              {branchOptions.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          )}
           <input
             type="date"
             value={dateFrom}
@@ -293,7 +307,7 @@ export default function ExpensesClient({
                         <Receipt className="w-6 h-6 text-amber-400" />
                       </div>
                       <p className="text-sm font-medium text-gray-500">
-                        {search || categoryFilter !== "ALL"
+                        {search || categoryFilter !== "ALL" || branchFilter !== "ALL"
                           ? "No expenses match your filters"
                           : "No expenses recorded yet"}
                       </p>
