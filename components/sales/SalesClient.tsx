@@ -64,6 +64,7 @@ export default function SalesClient({
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<SaleRecord | null>(null);
+  const [viewTarget, setViewTarget] = useState<SaleRecord | null>(null);
 
   const addToast = useCallback(
     (type: "success" | "error", message: string) => {
@@ -241,77 +242,78 @@ export default function SalesClient({
                 <th className="px-5 py-3.5" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7}>
-                    <div className="flex flex-col items-center justify-center py-14 text-center">
-                      <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mb-3">
-                        <ShoppingCart className="w-6 h-6 text-green-400" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-500">
-                        {search ? "No records match your search" : "No sale records yet"}
-                      </p>
-                      {!search && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          Record today&apos;s sales using the button above.
-                        </p>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((r) => (
-                  <tr
-                    key={r.id}
-                    className="hover:bg-gray-50/70 transition-colors"
-                  >
-                    <td className="px-5 py-3.5">
-                      <span className="font-medium text-gray-900">
-                        {new Date(r.date).toLocaleDateString()}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-500 hidden sm:table-cell">
-                      {r.branch.name}
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-700 text-right">
-                      {Number(r.litersSold).toFixed(1)} L
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-500 text-xs hidden xl:table-cell max-w-36 truncate" title={r.milkSupply ? new Date(r.milkSupply.date).toLocaleDateString() : ""}>
-                      {r.milkSupply
-                        ? new Date(r.milkSupply.date).toLocaleDateString()
-                        : "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-500 text-right hidden lg:table-cell">
-                      UGX {Number(r.pricePerLiter).toLocaleString()}
-                    </td>
-                    <td className="px-5 py-3.5 font-medium text-gray-900 text-right">
-                      UGX {Number(r.revenue).toLocaleString()}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setEditTarget(r)}
-                          className="p-2.5 text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        {userRole === "EXECUTIVE_DIRECTOR" && (
-                          <button
-                            onClick={() => handleDelete(r)}
-                            className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
+<tbody className="divide-y divide-gray-50">
+          {filtered.length === 0 ? (
+            <tr>
+              <td colSpan={7}>
+                <div className="flex flex-col items-center justify-center py-14 text-center">
+                  <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mb-3">
+                    <ShoppingCart className="w-6 h-6 text-green-400" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">
+                    {search ? "No records match your search" : "No sale records yet"}
+                  </p>
+                  {!search && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Record today&apos;s sales using the button above.
+                    </p>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ) : (
+            filtered.map((r) => (
+              <tr
+                key={r.id}
+                className="hover:bg-gray-50/70 transition-colors cursor-pointer"
+                onClick={() => setViewTarget(r)}
+              >
+                <td className="px-5 py-3.5">
+                  <span className="font-medium text-gray-900">
+                    {new Date(r.date).toLocaleDateString()}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5 text-gray-500 hidden sm:table-cell">
+                  {r.branch.name}
+                </td>
+                <td className="px-5 py-3.5 text-gray-700 text-right">
+                  {Number(r.litersSold).toFixed(1)} L
+                </td>
+                <td className="px-5 py-3.5 text-gray-500 text-xs hidden xl:table-cell max-w-36 truncate" title={r.milkSupply ? new Date(r.milkSupply.date).toLocaleDateString() : ""}>
+                  {r.milkSupply
+                    ? new Date(r.milkSupply.date).toLocaleDateString()
+                    : "—"}
+                </td>
+                <td className="px-5 py-3.5 text-gray-500 text-right hidden lg:table-cell">
+                  UGX {Number(r.pricePerLiter).toLocaleString()}
+                </td>
+                <td className="px-5 py-3.5 font-medium text-gray-900 text-right">
+                  UGX {Number(r.revenue).toLocaleString()}
+                </td>
+                <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => setEditTarget(r)}
+                      className="p-2.5 text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    {userRole === "EXECUTIVE_DIRECTOR" && (
+                      <button
+                        onClick={() => handleDelete(r)}
+                        className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
           </table>
         </div>
 
@@ -350,14 +352,91 @@ export default function SalesClient({
               prev.map((r) => (r.id === updated.id ? updated : r))
             );
             setEditTarget(null);
-            addToast("success", "Record updated successfully");
-          }}
-          onError={(msg) => addToast("error", msg)}
-        />
-      )}
-    </>
-  );
-}
+addToast("success", "Record updated successfully");
+            }}
+            onError={(msg) => addToast("error", msg)}
+          />
+        )}
+
+        {/* View Modal */}
+        {viewTarget && (
+          <Modal
+            open={!!viewTarget}
+            onClose={() => setViewTarget(null)}
+            title="Sale Details"
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Date</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {new Date(viewTarget.date).toLocaleDateString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Branch</p>
+                  <p className="text-sm font-medium text-gray-900">{viewTarget.branch.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Liters Sold</p>
+                  <p className="text-sm font-medium text-gray-900">{Number(viewTarget.litersSold).toFixed(1)} L</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Price per Liter</p>
+                  <p className="text-sm font-medium text-gray-900">UGX {Number(viewTarget.pricePerLiter).toLocaleString()}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-gray-500 mb-1">Revenue</p>
+                  <p className="text-lg font-semibold text-green-700">UGX {Number(viewTarget.revenue).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">From Delivery</p>
+                  <p className="text-sm text-gray-700">
+                    {viewTarget.milkSupply
+                      ? new Date(viewTarget.milkSupply.date).toLocaleDateString()
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Recorded By</p>
+                  <p className="text-sm text-gray-700">{viewTarget.recordedBy.fullName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Created At</p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(viewTarget.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    setViewTarget(null);
+                    setEditTarget(viewTarget);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-xl transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Edit Record
+                </button>
+                {userRole === "EXECUTIVE_DIRECTOR" && (
+                  <button
+                    onClick={() => {
+                      setViewTarget(null);
+                      handleDelete(viewTarget);
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </Modal>
+        )}
+      </>
+    );
+  }
 
 function SaleFormModal({
   open,

@@ -74,6 +74,7 @@ export default function ExpensesClient({
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ExpenseRecord | null>(null);
+  const [viewTarget, setViewTarget] = useState<ExpenseRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExpenseRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -319,83 +320,87 @@ export default function ExpensesClient({
                     </div>
                   </td>
                 </tr>
-              ) : (
-                filtered.map((r) => (
-                  <tr key={r.id} className={`hover:bg-gray-50/70 transition-colors ${r.isFlagged ? "bg-orange-50/40" : ""}`}>
-                    <td className="px-5 py-3.5 text-gray-700">
-                      <div className="flex items-center gap-1.5">
-                        {new Date(r.date).toLocaleDateString()}
-                        {r.isFlagged && (
-                          <Flag className="w-3 h-3 text-orange-500 fill-orange-500 flex-shrink-0" aria-label="Flagged for review" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-600 hidden md:table-cell">
-                      {r.branch.name}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          CATEGORY_BADGE[r.category] ?? "bg-gray-100 text-gray-600"
+) : (
+            filtered.map((r) => (
+              <tr
+                key={r.id}
+                className={`hover:bg-gray-50/70 transition-colors cursor-pointer ${r.isFlagged ? "bg-orange-50/40" : ""}`}
+                onClick={() => setViewTarget(r)}
+              >
+                <td className="px-5 py-3.5 text-gray-700">
+                  <div className="flex items-center gap-1.5">
+                    {new Date(r.date).toLocaleDateString()}
+                    {r.isFlagged && (
+                      <Flag className="w-3 h-3 text-orange-500 fill-orange-500 flex-shrink-0" aria-label="Flagged for review" />
+                    )}
+                  </div>
+                </td>
+                <td className="px-5 py-3.5 text-gray-600 hidden md:table-cell">
+                  {r.branch.name}
+                </td>
+                <td className="px-5 py-3.5">
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      CATEGORY_BADGE[r.category] ?? "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {CATEGORY_LABELS[r.category] ?? r.category}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5 text-gray-600 hidden lg:table-cell max-w-xs truncate">
+                  {r.description}
+                </td>
+                <td className="px-5 py-3.5 font-medium text-gray-900">
+                  UGX {Number(r.amount).toLocaleString()}
+                </td>
+                <td className="px-5 py-3.5 hidden md:table-cell">
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      r.paymentMethod === "CASH"
+                        ? "bg-green-50 text-green-700"
+                        : "bg-blue-50 text-blue-700"
+                    }`}
+                  >
+                    {r.paymentMethod}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-1">
+                    {userRole === "OWNER" ? (
+                      <button
+                        onClick={() => handleFlag(r)}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          r.isFlagged
+                            ? "text-orange-500 hover:text-orange-700 hover:bg-orange-50"
+                            : "text-gray-400 hover:text-orange-500 hover:bg-orange-50"
                         }`}
+                        title={r.isFlagged ? "Remove flag" : "Flag for review"}
                       >
-                        {CATEGORY_LABELS[r.category] ?? r.category}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-600 hidden lg:table-cell max-w-xs truncate">
-                      {r.description}
-                    </td>
-                    <td className="px-5 py-3.5 font-medium text-gray-900">
-                      UGX {Number(r.amount).toLocaleString()}
-                    </td>
-                    <td className="px-5 py-3.5 hidden md:table-cell">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          r.paymentMethod === "CASH"
-                            ? "bg-green-50 text-green-700"
-                            : "bg-blue-50 text-blue-700"
-                        }`}
-                      >
-                        {r.paymentMethod}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-end gap-1">
-                        {userRole === "OWNER" ? (
+                        <Flag className={`w-4 h-4 ${r.isFlagged ? "fill-orange-500" : ""}`} />
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setEditTarget(r)}
+                          className="p-2.5 text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        {userRole === "EXECUTIVE_DIRECTOR" && (
                           <button
-                            onClick={() => handleFlag(r)}
-                            className={`p-1.5 rounded-lg transition-colors ${
-                              r.isFlagged
-                                ? "text-orange-500 hover:text-orange-700 hover:bg-orange-50"
-                                : "text-gray-400 hover:text-orange-500 hover:bg-orange-50"
-                            }`}
-                            title={r.isFlagged ? "Remove flag" : "Flag for review"}
+                            onClick={() => setDeleteTarget(r)}
+                            className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
                           >
-                            <Flag className={`w-4 h-4 ${r.isFlagged ? "fill-orange-500" : ""}`} />
+                            <Trash2 className="w-4 h-4" />
                           </button>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => setEditTarget(r)}
-                              className="p-2.5 text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            {userRole === "EXECUTIVE_DIRECTOR" && (
-                              <button
-                                onClick={() => setDeleteTarget(r)}
-                                className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </>
                         )}
-                      </div>
-                    </td>
-                  </tr>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
                 ))
               )}
             </tbody>
@@ -439,8 +444,139 @@ export default function ExpensesClient({
             setEditTarget(null);
             addToast("success", "Expense updated successfully");
           }}
-          onError={(msg) => addToast("error", msg)}
-        />
+onError={(msg) => addToast("error", msg)}
+        />        
+      )}
+
+      {/* View Modal */}
+      {viewTarget && (
+        <Modal
+          open={!!viewTarget}
+          onClose={() => setViewTarget(null)}
+          title="Expense Details"
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Date</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {new Date(viewTarget.date).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Branch</p>
+                <p className="text-sm font-medium text-gray-900">{viewTarget.branch.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Category</p>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    CATEGORY_BADGE[viewTarget.category] ?? "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {CATEGORY_LABELS[viewTarget.category] ?? viewTarget.category}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Payment Method</p>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    viewTarget.paymentMethod === "CASH"
+                      ? "bg-green-50 text-green-700"
+                      : "bg-blue-50 text-blue-700"
+                  }`}
+                >
+                  {viewTarget.paymentMethod}
+                </span>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500 mb-1">Description</p>
+                <p className="text-sm text-gray-700">{viewTarget.description}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500 mb-1">Amount</p>
+                <p className="text-lg font-semibold text-gray-900">UGX {Number(viewTarget.amount).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Receipt Reference</p>
+                <p className="text-sm text-gray-700">{viewTarget.receiptReference ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Recorded By</p>
+                <p className="text-sm text-gray-700">{viewTarget.recordedBy.fullName}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Created At</p>
+                <p className="text-sm text-gray-500">
+                  {new Date(viewTarget.createdAt).toLocaleString()}
+                </p>
+              </div>
+              {viewTarget.isFlagged && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Flagged At</p>
+                  <p className="text-sm text-orange-600">
+                    {viewTarget.flaggedAt
+                      ? new Date(viewTarget.flaggedAt).toLocaleString()
+                      : "Flagged"}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 pt-4 border-t border-gray-100">
+              {userRole !== "OWNER" && (
+                <button
+                  onClick={() => {
+                    setViewTarget(null);
+                    setEditTarget(viewTarget);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-xl transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Edit Record
+                </button>
+              )}
+              {userRole === "OWNER" && (
+                <button
+                  onClick={() => {
+                    handleFlag(viewTarget);
+                    setViewTarget(null);
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors ${
+                    viewTarget.isFlagged
+                      ? "text-orange-600 bg-orange-50 hover:bg-orange-100"
+                      : "text-orange-600 bg-orange-50 hover:bg-orange-100"
+                  }`}
+                >
+                  <Flag className={`w-4 h-4 ${viewTarget.isFlagged ? "fill-orange-500" : ""}`} />
+                  {viewTarget.isFlagged ? "Remove Flag" : "Flag for Review"}
+                </button>
+              )}
+              {userRole === "EXECUTIVE_DIRECTOR" && (
+                <>
+                  <button
+                    onClick={() => {
+                      setViewTarget(null);
+                      setEditTarget(viewTarget);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 rounded-xl transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      setViewTarget(null);
+                      setDeleteTarget(viewTarget);
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Delete Confirmation Modal */}
