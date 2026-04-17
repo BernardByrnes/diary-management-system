@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { Plus, Search, Pencil, Trash2, FileText, ShoppingCart } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Modal from "@/components/ui/Modal";
 import Toast, { type ToastMessage } from "@/components/ui/Toast";
@@ -469,9 +469,8 @@ function SaleFormModal({
     watch,
     setValue,
     formState: { errors, isSubmitting },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<SaleInput>({
-    resolver: zodResolver(saleSchema) as any,
+    resolver: zodResolver(saleSchema) as Resolver<SaleInput>,
     defaultValues: {
       date: editRecord ? editRecord.date.split("T")[0] : "",
       branchId: editRecord?.branch.id ?? "",

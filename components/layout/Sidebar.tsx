@@ -164,18 +164,19 @@ export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10">
-          <div className="w-9 h-9 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center shrink-0 p-1">
+          <div className="w-10 h-10 rounded-xl overflow-hidden bg-white flex items-center justify-center shrink-0 p-1.5 shadow-sm ring-1 ring-white/20">
             <Image
-              src="/bwera logo.png"
-              alt="Bwera Dairy"
-              width={36}
-              height={36}
-              className="object-contain"
+              src="/image-better.png"
+              alt="Bwera Farmers Cooperative"
+              width={40}
+              height={40}
+              className="object-contain scale-[1.45] origin-center"
             />
           </div>
           <div>
-            <p className="font-bold text-sm leading-tight text-white">Bwera Dairy</p>
-            <p className="text-[10px] text-green-400 tracking-wide uppercase">Cooperative</p>
+            <p className="font-bold text-xs leading-snug text-white">
+              Bwera Farmers Cooperative
+            </p>
           </div>
         </div>
 

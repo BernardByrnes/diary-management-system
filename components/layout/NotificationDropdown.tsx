@@ -10,7 +10,8 @@ import {
   ArrowRightLeft,
   Gauge,
   CheckCircle2,
-  X
+  X,
+  type LucideIcon
 } from 'lucide-react'
 
 type Notification = {
@@ -51,7 +52,7 @@ export function NotificationDropdown({
     fetchNotifications()
   }, [])
 
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, LucideIcon> = {
     PAYMENT_DUE: DollarSign,
     PAYMENT_OVERDUE: DollarSign,
     BANKING_DISCREPANCY: AlertTriangle,

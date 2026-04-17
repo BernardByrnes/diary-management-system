@@ -1,5 +1,6 @@
 'use client'
 
+import { useId } from 'react'
 import {
   LineChart,
   Line,
@@ -42,7 +43,8 @@ export function TrendChart({
   showGradient = true,
   height = 320
 }: TrendChartProps) {
-  const gradientId = `gradient-${Math.random().toString(36).slice(2, 9)}`
+  const uid = useId().replace(/:/g, '')
+  const gradientId = `gradient-${uid}`
 
   // Empty state
   if (data.length === 0) {

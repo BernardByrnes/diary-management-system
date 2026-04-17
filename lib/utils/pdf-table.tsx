@@ -88,13 +88,13 @@ export function TablePDF({
   })
 
   return (
-    <Document title={title} author="Bwera Dairy System">
+    <Document title={title} author="Bwera Farmers Cooperative">
       <Page size="A4" orientation={columns.length > 6 ? 'landscape' : 'portrait'} style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <Image src="/bwera logo.png" style={styles.logo} />
-            <Text style={styles.orgName}>Bwera Cooperative Dairy</Text>
+            <Image src="/image-better.png" style={styles.logo} />
+            <Text style={styles.orgName}>Bwera Farmers Cooperative</Text>
           </View>
           <Text style={styles.reportTitle}>{title}</Text>
           {period && <Text style={styles.meta}>{period}</Text>}
@@ -128,7 +128,7 @@ export function TablePDF({
           <Text
             style={styles.footerText}
             render={({ pageNumber, totalPages }) =>
-              `Bwera Dairy System — Page ${pageNumber} of ${totalPages}`
+              `Bwera Farmers Cooperative — Page ${pageNumber} of ${totalPages}`
             }
           />
         </View>

@@ -251,10 +251,10 @@ function PDFHeader({ title, period }: { title: string; period: string }) {
     <View style={styles.header}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <Image
-          src="/bwera logo.png"
+          src="/image-better.png"
           style={{ width: 36, height: 36 }}
         />
-        <Text style={styles.orgName}>Bwera Cooperative Dairy</Text>
+        <Text style={styles.orgName}>Bwera Farmers Cooperative</Text>
       </View>
       <Text style={styles.reportTitle}>{title}</Text>
       <Text style={styles.period}>{period}</Text>
@@ -275,7 +275,7 @@ function PDFFooter() {
       <Text
         style={styles.footerText}
         render={({ pageNumber, totalPages }) =>
-          `Bwera Dairy System — Page ${pageNumber} of ${totalPages}`
+          `Bwera Farmers Cooperative — Page ${pageNumber} of ${totalPages}`
         }
       />
     </View>
@@ -288,7 +288,7 @@ export function MonthlyReportPDF({ data }: { data: MonthlyReportData }) {
   const totalOutstanding = data.outstandingSupplier + data.outstandingOwner
 
   return (
-    <Document title={`Monthly Summary — ${data.period}`} author="Bwera Dairy System">
+    <Document title={`Monthly Summary — ${data.period}`} author="Bwera Farmers Cooperative">
       <Page size="A4" style={styles.page}>
         <PDFHeader title="Monthly Summary Report" period={data.period} />
 
@@ -442,7 +442,7 @@ export function MonthlyReportPDF({ data }: { data: MonthlyReportData }) {
 
 export function BranchReportPDF({ data }: { data: BranchReportData }) {
   return (
-    <Document title={`Branch Performance — ${data.period}`} author="Bwera Dairy System">
+    <Document title={`Branch Performance — ${data.period}`} author="Bwera Farmers Cooperative">
       <Page size="A4" style={styles.page}>
         <PDFHeader title="Branch Performance Report" period={data.period} />
 

@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE "SystemSettings" (
     "id" TEXT NOT NULL DEFAULT 'singleton',
-    "organizationName" TEXT NOT NULL DEFAULT 'Bwera Cooperative Dairy',
+    "organizationName" TEXT NOT NULL DEFAULT 'Bwera Farmers Cooperative',
     "currencySymbol" TEXT NOT NULL DEFAULT 'UGX',
     "financialYearStartMonth" INTEGER NOT NULL DEFAULT 1,
     "lactometerMin" DECIMAL(5,3) NOT NULL DEFAULT 1.026,

@@ -7,7 +7,8 @@ import {
   DollarSign,
   FileWarning,
   ArrowRightLeft,
-  Gauge
+  Gauge,
+  type LucideIcon
 } from 'lucide-react'
 
 type Notification = {
@@ -27,7 +28,7 @@ export function NotificationsList({
 }) {
   const [items, setItems] = useState(notifications)
 
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, LucideIcon> = {
     PAYMENT_DUE: DollarSign,
     PAYMENT_OVERDUE: DollarSign,
     BANKING_DISCREPANCY: AlertTriangle,

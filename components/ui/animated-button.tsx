@@ -1,16 +1,9 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import React, { forwardRef, type ReactNode } from 'react'
+import { motion, type HTMLMotionProps } from 'framer-motion'
+import React, { forwardRef } from 'react'
 
-type AnimatedButtonProps = {
-  children?: ReactNode
-  className?: string
-  onClick?: () => void
-  disabled?: boolean
-  type?: 'button' | 'submit' | 'reset'
-  [key: string]: any
-}
+type AnimatedButtonProps = HTMLMotionProps<'button'>
 
 export const AnimatedButton = forwardRef<HTMLButtonElement, AnimatedButtonProps>(
   ({ children, ...props }, ref) => {

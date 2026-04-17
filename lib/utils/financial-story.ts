@@ -51,7 +51,7 @@ export function generateFinancialStory(data: FinancialStoryData): string {
 
   // ── Paragraph 1: Overview ──────────────────────────────────────────────────
 
-  let overviewPara = `In ${data.period.month} ${data.period.year}, the Bwera Cooperative generated UGX ${formatMoney(data.totalRevenue)} in revenue, with total milk costs of UGX ${formatMoney(data.totalCosts)} and operational expenses of UGX ${formatMoney(data.totalExpenses)}, `;
+  let overviewPara = `In ${data.period.month} ${data.period.year}, Bwera Farmers Cooperative generated UGX ${formatMoney(data.totalRevenue)} in revenue, with total milk costs of UGX ${formatMoney(data.totalCosts)} and operational expenses of UGX ${formatMoney(data.totalExpenses)}, `;
 
   if (data.totalProfit >= 0) {
     overviewPara += `resulting in a net profit of UGX ${formatMoney(data.totalProfit)}.`;

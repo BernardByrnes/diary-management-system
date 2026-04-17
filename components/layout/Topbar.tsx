@@ -37,7 +37,7 @@ export default function Topbar({ fullName, role, userId, onMenuToggle }: TopbarP
           <Menu className="w-5 h-5" />
         </button>
         <span className="text-lg font-semibold text-gray-800 hidden sm:block">
-          Bwera Cooperative Dairy
+          Bwera Farmers Cooperative
         </span>
       </div>
 

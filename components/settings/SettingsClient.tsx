@@ -320,7 +320,9 @@ export default function SettingsClient({ initialSettings }: Props) {
                 className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <p className="mt-1 text-xs text-gray-400">
-                Warn when a recipient's outstanding advances exceed this amount
+                {
+                  "Warn when a recipient's outstanding advances exceed this amount"
+                }
               </p>
             </div>
             <div>

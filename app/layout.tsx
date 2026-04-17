@@ -22,7 +22,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Bwera Cooperative Dairy Management System",
+  title: "Bwera Farmers Cooperative Management System",
   description: "Multi-branch dairy cooperative management platform",
 };
 

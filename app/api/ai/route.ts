@@ -226,7 +226,7 @@ const [
   }, {});
 
   // --- Build system prompt ---
-  const systemPrompt = `You are an AI assistant for Bwera Cooperative Dairy Management System. You help ${user.fullName} (${user.role.replace("_", " ")}) understand and manage dairy operations.
+  const systemPrompt = `You are an AI assistant for Bwera Farmers Cooperative Management System. You help ${user.fullName} (${user.role.replace("_", " ")}) understand and manage dairy operations.
 
 Today's date: ${new Date().toLocaleDateString("en-UG", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 

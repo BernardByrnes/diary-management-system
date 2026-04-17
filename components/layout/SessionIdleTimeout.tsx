@@ -38,7 +38,9 @@ export default function SessionIdleTimeout() {
     const events = ["mousedown", "keydown", "scroll", "touchstart", "click"];
     events.forEach((e) => window.addEventListener(e, bump, { passive: true }));
     lastReset.current = Date.now();
-    arm();
+    queueMicrotask(() => {
+      arm();
+    });
 
     return () => {
       events.forEach((e) => window.removeEventListener(e, bump));

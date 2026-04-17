@@ -5,16 +5,11 @@ import { prisma } from "@/lib/db/prisma";
 import { Building2 } from "lucide-react";
 import { getBranchAvailableLiters } from "@/lib/utils/stock";
 
-export default async function MyBranchesPage() {
-  const session = await auth();
-  const user = session!.user as { id: string; role: string };
-
-  if (user.role !== "OWNER") redirect("/dashboard");
-
+/** Data loader (not a React component) — keeps request-scoped date math out of the page component for react-hooks/purity. */
+async function getBranchesForOwner(ownerId: string) {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-  const branches = await prisma.branch.findMany({
-    where: { ownerId: user.id },
+  return prisma.branch.findMany({
+    where: { ownerId },
     include: {
       managers: {
         include: { manager: { select: { id: true, fullName: true } } },
@@ -32,6 +27,15 @@ export default async function MyBranchesPage() {
       },
     },
   });
+}
+
+export default async function MyBranchesPage() {
+  const session = await auth();
+  const user = session!.user as { id: string; role: string };
+
+  if (user.role !== "OWNER") redirect("/dashboard");
+
+  const branches = await getBranchesForOwner(user.id);
 
   // Compute current stock balance for each branch in parallel
   const stockBalances = await Promise.all(

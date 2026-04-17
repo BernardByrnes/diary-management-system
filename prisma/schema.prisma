@@ -425,7 +425,7 @@ model StockSnapshot {
 
 model SystemSettings {
   id                       String   @id @default("singleton")
-  organizationName         String   @default("Bwera Cooperative Dairy")
+  organizationName         String   @default("Bwera Farmers Cooperative")
   currencySymbol           String   @default("UGX")
   financialYearStartMonth  Int      @default(1)
   lactometerMin            Decimal  @default(1.026) @db.Decimal(5, 3)

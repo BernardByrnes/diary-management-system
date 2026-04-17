@@ -63,15 +63,15 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <div className="w-20 h-20 rounded-2xl bg-white shadow-md flex items-center justify-center p-2">
               <Image
-                src="/bwera logo.png"
-                alt="Bwera Dairy"
+                src="/image-better.png"
+                alt="Bwera Farmers Cooperative"
                 width={64}
                 height={64}
                 className="object-contain"
               />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Bwera Cooperative Dairy</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Bwera Farmers Cooperative</h1>
           <p className="text-gray-500 mt-1">Sign in to your account</p>
         </div>
 
@@ -149,7 +149,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-sm text-gray-400 mt-6">
-          Bwera Cooperative Dairy Management System
+          Bwera Farmers Cooperative Management System
         </p>
       </div>
     </div>

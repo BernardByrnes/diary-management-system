@@ -106,7 +106,7 @@ export function AiChat() {
         setMessages([
           {
             role: "assistant",
-            content: "Hello! I'm your Bwera Dairy assistant. Ask me about milk deliveries, sales, expenses, or any business data.",
+            content: "Hello! I'm your Bwera Farmers Cooperative assistant. Ask me about milk deliveries, sales, expenses, or any business data.",
           },
         ]);
       }
