@@ -71,6 +71,7 @@ enum NotificationType {
   ADVANCE_LIMIT
   SNAPSHOT_PENDING
   SPOILAGE_PENDING
+  REPORT_SHARED
 }
 
 enum SnapshotStatus {

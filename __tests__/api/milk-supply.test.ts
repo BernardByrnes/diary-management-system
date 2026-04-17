@@ -21,7 +21,7 @@ describe("/api/milk-supply", () => {
   beforeAll(async () => {
     edId = await seedUserId("ED");
     managerId = await seedUserId("MANAGER");
-    branchCentralId = await branchIdByName("Bwera Central");
+    branchCentralId = await branchIdByName("Bwera Nyendo");
     supplierId = await firstSupplierId();
   });
 
@@ -94,7 +94,7 @@ describe("/api/milk-supply", () => {
 
   it("Manager cannot post to unassigned branch → 403", async () => {
     await setMockAuthUserId(managerId);
-    const otherBranchId = await branchIdByName("Bwera Kyabugimbi");
+    const otherBranchId = await branchIdByName("Bwera Mukungwe");
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const res = await POST(

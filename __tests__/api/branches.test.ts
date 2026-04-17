@@ -6,6 +6,7 @@ import {
   seedUserId,
   setMockAuthUserId,
 } from "../helpers/setup";
+import { deleteBranchCascade } from "@/lib/db/delete-branch-cascade";
 
 describe("/api/branches", () => {
   let edId: string;
@@ -26,7 +27,7 @@ describe("/api/branches", () => {
 
   it("ED can create branch → 201", async () => {
     await setMockAuthUserId(edId);
-    const name = `API Branch ${Date.now()}`;
+    const name = `Integration test branch ${Date.now()}`;
     const res = await POST(
       new Request("http://localhost/api/branches", {
         method: "POST",
@@ -39,8 +40,9 @@ describe("/api/branches", () => {
       })
     );
     expect(res.status).toBe(201);
-    const body = (await res.json()) as { name: string };
+    const body = (await res.json()) as { id: string; name: string };
     expect(body.name).toBe(name);
+    await deleteBranchCascade(body.id);
   });
 
   it("ED duplicate name → 400", async () => {
@@ -50,7 +52,7 @@ describe("/api/branches", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "Bwera Central",
+          name: "Bwera Nyendo",
           location: "Somewhere",
           ownerId,
         }),

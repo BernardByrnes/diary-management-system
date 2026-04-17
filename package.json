@@ -14,6 +14,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:clean-test-branches": "tsx scripts/delete-integration-test-branches.ts",
+    "db:consolidate-suppliers": "tsx scripts/consolidate-suppliers.ts",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate"
   },

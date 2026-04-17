@@ -11,6 +11,7 @@ import {
   CalendarCheck,
   Scale,
   PieChart,
+  ClipboardList,
 } from "lucide-react";
 
 export default async function ReportsPage() {
@@ -163,7 +164,7 @@ export default async function ReportsPage() {
       {/* Report Links */}
       <div>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Detailed Reports</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Branch Performance */}
           <Link
             href="/dashboard/reports/branch-performance"
@@ -175,6 +176,19 @@ export default async function ReportsPage() {
             <h3 className="font-semibold text-gray-900 text-sm">Branch Performance</h3>
             <p className="text-xs text-gray-400 mt-1">Revenue, costs &amp; profit by branch</p>
             <span className="text-xs text-green-700 font-medium mt-3 inline-block">View Report →</span>
+          </Link>
+
+          {/* Branch Summary — PDF per branch */}
+          <Link
+            href="/dashboard/reports/branch-summary"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md hover:border-emerald-200 transition-all group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mb-3 group-hover:bg-emerald-200 transition-colors">
+              <ClipboardList className="w-5 h-5 text-emerald-700" />
+            </div>
+            <h3 className="font-semibold text-gray-900 text-sm">Branch Summary</h3>
+            <p className="text-xs text-gray-400 mt-1">Comprehensive PDF for one branch to share</p>
+            <span className="text-xs text-emerald-700 font-medium mt-3 inline-block">Open →</span>
           </Link>
 
           {/* Supplier Payments */}

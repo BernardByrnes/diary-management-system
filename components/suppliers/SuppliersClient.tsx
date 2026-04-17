@@ -321,7 +321,7 @@ function SupplierFormModal({
           <input
             {...register("location")}
             className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
-            placeholder="e.g. Kasese"
+            placeholder="e.g. Masaka"
           />
         </div>
 

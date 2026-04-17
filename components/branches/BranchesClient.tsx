@@ -373,7 +373,7 @@ function BranchFormModal({
           <input
             {...register("name")}
             className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
-            placeholder="e.g. Kasese Central"
+            placeholder="e.g. Nyendo, Masaka"
           />
           {errors.name && (
             <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
@@ -387,7 +387,7 @@ function BranchFormModal({
           <input
             {...register("location")}
             className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
-            placeholder="e.g. Kasese Town"
+            placeholder="e.g. Masaka"
           />
           {errors.location && (
             <p className="mt-1 text-xs text-red-500">

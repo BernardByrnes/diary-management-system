@@ -69,7 +69,7 @@ const navSections: Record<Role, NavSection[]> = {
         { href: "/dashboard/users", label: "Users", icon: Users },
         { href: "/dashboard/suppliers", label: "Suppliers", icon: Truck },
         { href: "/dashboard/payments", label: "Payments", icon: CalendarCheck },
-        { href: "/dashboard/distributions", label: "Distributions", icon: PieChart },
+        { href: "/dashboard/distributions", label: "Branch Profits", icon: PieChart },
         { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
       ],
     },

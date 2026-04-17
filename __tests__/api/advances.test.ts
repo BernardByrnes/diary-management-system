@@ -23,7 +23,7 @@ describe("/api/advances", () => {
     edId = await seedUserId("ED");
     managerId = await seedUserId("MANAGER");
     supplierId = await firstSupplierId();
-    branchId = await branchIdByName("Bwera Central");
+    branchId = await branchIdByName("Bwera Nyendo");
   });
 
   it("ED can create → 201", async () => {
@@ -39,7 +39,7 @@ describe("/api/advances", () => {
           recipientType: "SUPPLIER",
           amount,
           date: ymd(yesterday),
-          purpose: "API integration test advance",
+          purpose: "Integration test advance",
           supplierId,
           branchId,
         }),

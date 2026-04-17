@@ -462,11 +462,12 @@ export async function getCommandCenterAlerts(
       },
     });
   } else if (losses.length > 1) {
+    const names = losses.map((l) => l.branchName).join(", ");
     alerts.push({
       id: "loss-multi",
       type: "LOSS",
       urgency: "HIGH",
-      message: `${losses.length} branches operating at a loss this period`,
+      message: `${losses.length} branches operating at a loss this period: ${names}`,
       actionUrl: "/dashboard/distributions",
       metadata: { count: losses.length },
     });
@@ -494,7 +495,7 @@ export async function getCommandCenterAlerts(
       id: "payment-1",
       type: "PAYMENT",
       urgency: "MEDIUM",
-      message: `1 supplier payment due on ${formatDate(payments[0].scheduledDate)} (UGX ${formatMoney(payments[0].amount)})`,
+      message: `Payment to ${payments[0].supplierName} due on ${formatDate(payments[0].scheduledDate)} (UGX ${formatMoney(payments[0].amount)})`,
       actionUrl: "/dashboard/payments",
       metadata: {
         amount: payments[0].amount,
@@ -503,11 +504,12 @@ export async function getCommandCenterAlerts(
     });
   } else if (payments.length > 1) {
     const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+    const supplierNames = [...new Set(payments.map((p) => p.supplierName))].join(", ");
     alerts.push({
       id: "payment-multi",
       type: "PAYMENT",
       urgency: "MEDIUM",
-      message: `${payments.length} supplier payments due within 3 days (total: UGX ${formatMoney(totalAmount)})`,
+      message: `${payments.length} supplier payments due within 3 days (${supplierNames}) — total UGX ${formatMoney(totalAmount)}`,
       actionUrl: "/dashboard/payments",
       metadata: { count: payments.length, amount: totalAmount },
     });

@@ -96,26 +96,36 @@ async function main() {
     },
   });
 
-  // ── Branches ──────────────────────────────────────────────────────────────
-  const branch1 = await prisma.branch.upsert({
-    where: { name: "Bwera Central" },
-    update: {},
-    create: {
-      name: "Bwera Central",
-      location: "Bwera Town, Kasese District",
-      ownerId: owner1.id,
-    },
-  });
+  // ── Branches (8 locations; demo data uses first two) ─────────────────────
+  const BRANCH_DEFINITIONS: { name: string; location: string }[] = [
+    { name: "Bwera Nyendo", location: "Nyendo, Masaka" },
+    { name: "Bwera Mukungwe", location: "Mukungwe, Masaka" },
+    { name: "Bwera Kimaanya", location: "Kimaanya, Masaka" },
+    { name: "Bwera Kyabakuza", location: "Kyabakuza, Masaka" },
+    { name: "Bwera Katwe", location: "Katwe, Masaka" },
+    { name: "Bwera Butego", location: "Butego, Masaka" },
+    { name: "Bwera Ssenyange", location: "Ssenyange, Masaka" },
+    { name: "Bwera Kijjabwemi", location: "Kijjabwemi, Masaka" },
+  ];
 
-  const branch2 = await prisma.branch.upsert({
-    where: { name: "Bwera Kyabugimbi" },
-    update: {},
-    create: {
-      name: "Bwera Kyabugimbi",
-      location: "Kyabugimbi, Kasese District",
-      ownerId: owner2.id,
-    },
-  });
+  const branchRows: Awaited<ReturnType<typeof prisma.branch.upsert>>[] = [];
+  for (let i = 0; i < BRANCH_DEFINITIONS.length; i++) {
+    const def = BRANCH_DEFINITIONS[i];
+    const branchOwner = i % 2 === 0 ? owner1 : owner2;
+    const b = await prisma.branch.upsert({
+      where: { name: def.name },
+      update: { location: def.location, ownerId: branchOwner.id },
+      create: {
+        name: def.name,
+        location: def.location,
+        ownerId: branchOwner.id,
+      },
+    });
+    branchRows.push(b);
+  }
+
+  const branch1 = branchRows[0];
+  const branch2 = branchRows[1];
 
   // ── Assign Managers ───────────────────────────────────────────────────────
   await prisma.branchManager.upsert({
@@ -134,25 +144,16 @@ async function main() {
     create: { branchId: branch2.id, managerId: manager3.id },
   });
 
-  // ── Suppliers ─────────────────────────────────────────────────────────────
-  const supplierData = [
-    { name: "Amos Bwambale", phone: "0701000001", location: "Kitswamba" },
-    { name: "Ruth Biira", phone: "0701000002", location: "Bwera" },
-    { name: "John Mukirane", phone: "0701000003", location: "Karusandara" },
-    { name: "Esther Kyakimwa", phone: "0701000004", location: "Mahango" },
-    { name: "Moses Kule", phone: "0701000005", location: "Kyondo" },
-  ];
-
-  const suppliers: Awaited<ReturnType<typeof prisma.supplier.upsert>>[] = [];
-  for (const s of supplierData) {
-    const sup = await prisma.supplier.upsert({
-      where: { phone: s.phone },
-      update: {},
-      create: s,
-    });
-    suppliers.push(sup);
-  }
-  const [sup1, sup2, sup3, sup4, sup5] = suppliers;
+  // ── Suppliers (single supplier — supplies all milk) ───────────────────────
+  const supplier = await prisma.supplier.upsert({
+    where: { phone: "0701000001" },
+    update: { name: "Fred Katalekwa", location: "Masaka" },
+    create: {
+      name: "Fred Katalekwa",
+      phone: "0701000001",
+      location: "Masaka",
+    },
+  });
 
   // ── Settings singleton ────────────────────────────────────────────────────
   await prisma.systemSettings.upsert({
@@ -162,10 +163,7 @@ async function main() {
   });
 
   // ── 30 Days of Milk Supply ────────────────────────────────────────────────
-  // Branch 1: ~180–220L/day from 2–3 suppliers at 1,200–1,300 UGX/L
-  // Branch 2: ~120–160L/day from 2 suppliers at 1,150–1,250 UGX/L
-  const b1Suppliers = [sup1, sup2, sup3];
-  const b2Suppliers = [sup4, sup5];
+  // All milk from Fred Katalekwa. Branch 1: ~180–220L/day (2 deliveries); branch 2: ~120–160L/day.
   const b1Manager = manager1;
   const b2Manager = manager3;
 
@@ -181,7 +179,7 @@ async function main() {
         totalCost: b1Liters1 * b1Cost1,
         retailPricePerLiter: Math.round(b1Cost1 * 1.28 + 80),
         branchId: branch1.id,
-        supplierId: b1Suppliers[day % 3].id,
+        supplierId: supplier.id,
         recordedById: b1Manager.id,
       },
     });
@@ -196,7 +194,7 @@ async function main() {
         totalCost: b1Liters2 * b1Cost2,
         retailPricePerLiter: Math.round(b1Cost2 * 1.28 + 80),
         branchId: branch1.id,
-        supplierId: b1Suppliers[(day + 1) % 3].id,
+        supplierId: supplier.id,
         recordedById: b1Manager.id,
       },
     });
@@ -212,7 +210,7 @@ async function main() {
         totalCost: b2Liters * b2Cost,
         retailPricePerLiter: Math.round(b2Cost * 1.28 + 80),
         branchId: branch2.id,
-        supplierId: b2Suppliers[day % 2].id,
+        supplierId: supplier.id,
         recordedById: b2Manager.id,
       },
     });
@@ -259,7 +257,7 @@ async function main() {
     data: {
       date: daysAgo(28),
       category: "RENT",
-      description: "Monthly shop rent — Bwera Central",
+      description: `Monthly shop rent — ${branch1.name}`,
       amount: 150000,
       paymentMethod: PaymentMethod.BANK,
       branchId: branch1.id,
@@ -270,7 +268,7 @@ async function main() {
     data: {
       date: daysAgo(28),
       category: "RENT",
-      description: "Monthly shop rent — Bwera Kyabugimbi",
+      description: `Monthly shop rent — ${branch2.name}`,
       amount: 120000,
       paymentMethod: PaymentMethod.BANK,
       branchId: branch2.id,
@@ -283,7 +281,7 @@ async function main() {
     data: {
       date: daysAgo(25),
       category: "SALARIES",
-      description: "Staff salaries — Bwera Central",
+      description: `Staff salaries — ${branch1.name}`,
       amount: 450000,
       paymentMethod: PaymentMethod.BANK,
       branchId: branch1.id,
@@ -294,7 +292,7 @@ async function main() {
     data: {
       date: daysAgo(25),
       category: "SALARIES",
-      description: "Staff salaries — Kyabugimbi",
+      description: `Staff salaries — ${branch2.name}`,
       amount: 380000,
       paymentMethod: PaymentMethod.BANK,
       branchId: branch2.id,
@@ -341,7 +339,7 @@ async function main() {
   await prisma.advance.create({
     data: {
       recipientType: "SUPPLIER",
-      supplierId: sup1.id,
+      supplierId: supplier.id,
       amount: 200000,
       date: daysAgo(20),
       purpose: "Emergency advance — farming input costs",
@@ -353,7 +351,7 @@ async function main() {
   await prisma.advance.create({
     data: {
       recipientType: "SUPPLIER",
-      supplierId: sup2.id,
+      supplierId: supplier.id,
       amount: 150000,
       date: daysAgo(35),
       purpose: "Advance against next payment",
@@ -398,7 +396,7 @@ async function main() {
       date: daysAgo(2),
       liters: 20,
       costPerLiter: 1200,
-      reason: "Excess inventory — request to transfer to Kyabugimbi",
+      reason: `Excess inventory — request to transfer to ${branch2.name}`,
       status: "PENDING",
       sourceBranchId: branch1.id,
       destinationBranchId: branch2.id,
@@ -487,24 +485,24 @@ async function main() {
     ? new Date(now.getFullYear(), now.getMonth(), 15)
     : new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  for (const sup of [sup1, sup2]) {
+  {
     const gross = 800000 + Math.floor(Math.random() * 400000);
     await prisma.supplierPayment.upsert({
       where: {
         supplierId_periodStart_periodEnd: {
-          supplierId: sup.id,
+          supplierId: supplier.id,
           periodStart,
           periodEnd,
         },
       },
       update: {},
       create: {
-        supplierId: sup.id,
+        supplierId: supplier.id,
         periodStart,
         periodEnd,
         grossAmount: gross,
-        advanceDeductions: sup.id === sup1.id ? 200000 : 0,
-        netAmount: sup.id === sup1.id ? gross - 200000 : gross,
+        advanceDeductions: 200000,
+        netAmount: gross - 200000,
         status: "CALCULATED",
         scheduledDate: isFirstHalf
           ? new Date(now.getFullYear(), now.getMonth(), 15)
@@ -560,7 +558,7 @@ async function main() {
     data: {
       type: "TRANSFER_PENDING",
       title: "Milk Transfer Pending Approval",
-      message: "Peter Okello has requested a transfer of 20L from Bwera Central to Bwera Kyabugimbi.",
+      message: `Peter Okello has requested a transfer of 20L from ${branch1.name} to ${branch2.name}.`,
       urgency: "MEDIUM",
       isRead: false,
       userId: director.id,
@@ -571,7 +569,7 @@ async function main() {
     data: {
       type: "READING_OUT_OF_RANGE",
       title: "Lactometer Reading Out of Range",
-      message: "A reading of 1.018 was recorded at Bwera Central — below the acceptable minimum (1.026).",
+      message: `A reading of 1.018 was recorded at ${branch1.name} — below the acceptable minimum (1.026).`,
       urgency: "HIGH",
       isRead: false,
       userId: director.id,
@@ -582,7 +580,7 @@ async function main() {
     data: {
       type: "BANKING_DISCREPANCY",
       title: "Banking Discrepancy Detected",
-      message: "Bwera Central deposit on day 12 shows a discrepancy. Review required.",
+      message: `${branch1.name} deposit on day 12 shows a discrepancy. Review required.`,
       urgency: "HIGH",
       isRead: true,
       userId: director.id,
@@ -617,8 +615,13 @@ async function main() {
   console.log("  Grace Apio   — 0700000005 / Temp@1234");
   console.log("  David Kato   — 0700000006 / Temp@1234\n");
   console.log("BRANCHES:");
-  console.log("  Bwera Central     → Owner: James Mugisha");
-  console.log("  Bwera Kyabugimbi  → Owner: Sarah Namukasa\n");
+  branchRows.forEach((b, i) => {
+    const ownerLabel = i % 2 === 0 ? "James Mugisha" : "Sarah Namukasa";
+    console.log(`  ${b.name} → Owner: ${ownerLabel}`);
+  });
+  console.log("");
+  console.log("SUPPLIER:");
+  console.log(`  ${supplier.name} — all milk supply (phone ${supplier.phone})\n`);
   console.log("TEST DATA:");
   console.log("  30 days of milk supply, sales, expenses, deposits, readings");
   console.log("  3 transfers (1 approved, 1 pending, 1 rejected)");

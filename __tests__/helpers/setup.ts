@@ -104,7 +104,7 @@ export async function activateUser(userId: string): Promise<void> {
   });
 }
 
-/** Looks up branch id by unique name from seed (e.g. "Bwera Central"). */
+/** Looks up branch id by unique name from seed (e.g. "Bwera Nyendo"). */
 export async function branchIdByName(name: string): Promise<string> {
   const b = await prisma.branch.findUnique({
     where: { name },
