@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { saleSchema } from "@/lib/validations/sale";
 import { createAuditLog } from "@/lib/utils/audit";
 import { getBranchAvailableLiters } from "@/lib/utils/stock";
+import { getFifoStateForBranch } from "@/lib/utils/fifo";
 import { getActiveUserOrError } from "@/lib/utils/session";
 
 export async function GET() {
@@ -51,38 +52,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const { date, branchId, litersSold, pricePerLiter, milkSupplyId } = parsed.data;
-
-  if (milkSupplyId) {
-    const supply = await prisma.milkSupply.findUnique({
-      where: { id: milkSupplyId },
-      select: { branchId: true },
-    });
-    if (!supply || supply.branchId !== branchId) {
-      return NextResponse.json(
-        {
-          error:
-            "The selected delivery batch must belong to the same branch as this sale.",
-        },
-        { status: 400 }
-      );
-    }
-  }
+  const { date, branchId, litersSold, pricePerLiter } = parsed.data;
 
   if (user.role === "MANAGER") {
     const managed = await prisma.branchManager.findMany({
       where: { managerId: user.id },
       select: { branchId: true },
     });
-    const managedIds = managed.map((b) => b.branchId);
-    if (!managedIds.includes(branchId)) {
+    if (!managed.map((b) => b.branchId).includes(branchId)) {
       const branch = await prisma.branch.findUnique({
         where: { id: branchId },
         select: { name: true },
       });
-      const branchName = branch?.name ?? "that branch";
       return NextResponse.json(
-        { error: `You are not assigned to manage ${branchName}.` },
+        { error: `You are not assigned to manage ${branch?.name ?? "that branch"}.` },
         { status: 403 }
       );
     }
@@ -92,13 +75,14 @@ export async function POST(request: Request) {
   if (litersSold > available + 1e-6) {
     return NextResponse.json(
       {
-        error: `Not enough milk in stock at this branch. Available: ${available.toFixed(1)} L; attempted sale: ${litersSold} L.`,
+        error: `Not enough milk in stock. Available: ${available.toFixed(1)} L, attempted: ${litersSold} L.`,
       },
       { status: 400 }
     );
   }
 
-  const revenue = litersSold * pricePerLiter;
+  // Auto-assign to the current FIFO delivery lot (if milk came from a direct delivery).
+  const { milkSupplyId } = await getFifoStateForBranch(branchId);
 
   const sale = await prisma.sale.create({
     data: {
@@ -106,7 +90,7 @@ export async function POST(request: Request) {
       branchId,
       litersSold,
       pricePerLiter,
-      revenue,
+      revenue: litersSold * pricePerLiter,
       milkSupplyId: milkSupplyId ?? null,
       recordedById: user.id,
     },
@@ -122,7 +106,7 @@ export async function POST(request: Request) {
     entityType: "Sale",
     entityId: sale.id,
     userId: user.id,
-    changes: { date, branchId, litersSold, pricePerLiter, revenue, milkSupplyId },
+    changes: { date, branchId, litersSold, pricePerLiter, milkSupplyId },
   });
 
   return NextResponse.json(sale, { status: 201 });

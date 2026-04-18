@@ -215,24 +215,28 @@ model Sale {
 }
 
 model Expense {
-  id               String          @id @default(cuid())
-  date             DateTime
-  category         ExpenseCategory
-  description      String
-  amount           Decimal         @db.Decimal(12, 2)
-  paymentMethod    PaymentMethod
+  id String @id @default(cuid())
+  date DateTime
+  /// Start of the billing period for this expense batch (e.g., 2026-04-01 for 1st-15th period)
+  periodStart DateTime @default(now())
+  /// End of the billing period (e.g., 2026-04-15); also used as the representative date for the expense
+  periodEnd DateTime @default(now())
+  category ExpenseCategory
+  description String
+  amount Decimal @db.Decimal(12, 2)
+  paymentMethod PaymentMethod
   receiptReference String?
-  isFlagged        Boolean         @default(false)
-  flaggedById      String?
-  flaggedAt        DateTime?
-  branchId         String
-  recordedById     String
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  isFlagged Boolean @default(false)
+  flaggedById String?
+  flaggedAt DateTime?
+  branchId String
+  recordedById String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  branch     Branch @relation(fields: [branchId], references: [id])
-  recordedBy User   @relation("ExpenseRecorder", fields: [recordedById], references: [id])
-  flaggedBy  User?  @relation("ExpenseFlagged", fields: [flaggedById], references: [id])
+  branch Branch @relation(fields: [branchId], references: [id])
+  recordedBy User @relation("ExpenseRecorder", fields: [recordedById], references: [id])
+  flaggedBy User? @relation("ExpenseFlagged", fields: [flaggedById], references: [id])
 }
 
 model Advance {
@@ -262,6 +266,8 @@ model MilkTransfer {
   date                DateTime
   liters              Decimal        @db.Decimal(10, 1)
   costPerLiter        Decimal        @db.Decimal(10, 2)
+  /// Retail selling price inherited from the source branch's current FIFO lot at transfer time.
+  retailPricePerLiter Decimal?       @db.Decimal(10, 2)
   reason              String
   status              TransferStatus @default(PENDING)
   sourceBranchId      String

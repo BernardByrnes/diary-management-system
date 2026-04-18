@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Search, Pencil, Trash2, Flag, FileText, Receipt } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Flag, FileText, Receipt, Layers } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Modal from "@/components/ui/Modal";
 import Toast, { type ToastMessage } from "@/components/ui/Toast";
+import BulkExpenseModal from "./BulkExpenseModal";
+import BulkExpenseEditModal from "./BulkExpenseEditModal";
 import {
   expenseSchema,
   EXPENSE_CATEGORIES,
@@ -18,6 +20,8 @@ import PdfButton from "@/components/ui/PdfButton";
 interface ExpenseRecord {
   id: string;
   date: string;
+  periodStart?: string;
+  periodEnd?: string;
   category: string;
   description: string;
   amount: string;
@@ -73,11 +77,22 @@ export default function ExpensesClient({
   const [dateTo, setDateTo] = useState("");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [bulkAddOpen, setBulkAddOpen] = useState(false);
+  const [bulkAddDefaults, setBulkAddDefaults] = useState<{ branchId?: string; periodPreset?: string }>({});
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkEditData, setBulkEditData] = useState<{
+    branchId: string;
+    branchName: string;
+    periodStart: string;
+    periodEnd: string;
+    records: ExpenseRecord[];
+  } | null>(null);
   const [editTarget, setEditTarget] = useState<ExpenseRecord | null>(null);
   const [viewTarget, setViewTarget] = useState<ExpenseRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExpenseRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [batchFetching, setBatchFetching] = useState(false);
 
   const addToast = useCallback((type: "success" | "error", message: string) => {
     const id = String(++toastCounter);
@@ -140,6 +155,50 @@ export default function ExpensesClient({
       setDeleting(false);
     }
   }
+
+  const handleOpenBatchEdit = async (batch: { branchId: string; branchName: string; periodStart: string; periodEnd: string }) => {
+    setBatchFetching(true);
+    try {
+      const params = new URLSearchParams({
+        branchId: batch.branchId,
+        periodStart: batch.periodStart,
+        periodEnd: batch.periodEnd,
+      });
+      const res = await fetch(`/api/expenses/bulk?${params}`);
+      if (!res.ok) {
+        addToast("error", "Failed to load batch");
+        return;
+      }
+      const data: Array<{ id: string; category: string; description: string; amount: number | string; branch: { id: string; name: string }; date: string; periodStart?: string; periodEnd?: string; paymentMethod: string; receiptReference: string | null; isFlagged: boolean; flaggedAt: string | null; recordedBy: { id: string; fullName: string }; createdAt: string }> = await res.json();
+      setBulkEditData({
+        branchId: batch.branchId,
+        branchName: batch.branchName,
+        periodStart: batch.periodStart,
+        periodEnd: batch.periodEnd,
+        records: data.map((e) => ({
+          id: e.id,
+          date: typeof e.date === "string" ? e.date : new Date(e.date).toISOString(),
+          periodStart: e.periodStart,
+          periodEnd: e.periodEnd,
+          category: e.category,
+          description: e.description,
+          amount: String(e.amount),
+          paymentMethod: e.paymentMethod,
+          receiptReference: e.receiptReference,
+          isFlagged: e.isFlagged,
+          flaggedAt: e.flaggedAt,
+          branch: e.branch,
+          recordedBy: e.recordedBy,
+          createdAt: e.createdAt,
+        })),
+      });
+      setBulkEditOpen(true);
+    } catch {
+      addToast("error", "Something went wrong");
+    } finally {
+      setBatchFetching(false);
+    }
+  };
 
   return (
     <>
@@ -263,15 +322,121 @@ export default function ExpensesClient({
                 receiptReference: r.receiptReference ?? "",
               }))}
             />
-            <button
-              onClick={() => setAddOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-xl transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Add Expense
-            </button>
+<button
+            onClick={() => setBulkAddOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            <Layers className="w-4 h-4" />
+            Bulk Entry
+          </button>
+          <button
+            onClick={() => setAddOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-xl transition-colors border border-green-200"
+          >
+            <Plus className="w-4 h-4" />
+            Single
+          </button>
           </div>
         </div>
+
+        {/* Period Completeness Tracker — ED only */}
+        {userRole === "EXECUTIVE_DIRECTOR" && (() => {
+          const now = new Date();
+          const y = now.getFullYear();
+          const m = now.getMonth();
+          const d = now.getDate();
+          const preset = d <= 15 ? "first-half" : "second-half";
+          const periodStart = d <= 15
+            ? new Date(y, m, 1).toISOString().slice(0, 10)
+            : new Date(y, m, 16).toISOString().slice(0, 10);
+          const periodEnd = d <= 15
+            ? new Date(y, m, 15).toISOString().slice(0, 10)
+            : new Date(y, m + 1, 0).toISOString().slice(0, 10);
+          const periodLabel = `${new Date(periodStart).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${new Date(periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+          const coveredIds = new Set(
+            records.filter((r) => r.periodStart?.slice(0, 10) === periodStart).map((r) => r.branch.id)
+          );
+          const done = branchOptions.filter((b) => coveredIds.has(b.id));
+          const missing = branchOptions.filter((b) => !coveredIds.has(b.id));
+          if (branchOptions.length === 0) return null;
+          return (
+            <div className="bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2.5">
+                Current period: {periodLabel}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {done.map((b) => (
+                  <span key={b.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-100 rounded-lg">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    {b.name}
+                  </span>
+                ))}
+                {missing.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => {
+                      setBulkAddDefaults({ branchId: b.id, periodPreset: preset });
+                      setBulkAddOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" /></svg>
+                    {b.name} — expenses missing
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Period Batch Cards — ED only */}
+        {userRole === "EXECUTIVE_DIRECTOR" && (() => {
+          const periodMap = new Map<string, { branchId: string; branchName: string; periodStart: string; periodEnd: string; count: number; total: number }>();
+          for (const r of records) {
+            if (!r.periodStart || !r.periodEnd) continue;
+            const key = `${r.branch.id}__${r.periodStart}__${r.periodEnd}`;
+            const existing = periodMap.get(key);
+            if (existing) {
+              existing.count++;
+              existing.total += Number(r.amount);
+            } else {
+              periodMap.set(key, { branchId: r.branch.id, branchName: r.branch.name, periodStart: r.periodStart, periodEnd: r.periodEnd, count: 1, total: Number(r.amount) });
+            }
+          }
+          const batches = [...periodMap.values()].sort((a, b) => b.periodEnd.localeCompare(a.periodEnd));
+          if (batches.length === 0) return null;
+          return (
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Period Batches</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {batches.map((batch) => (
+                  <div
+                    key={`${batch.branchId}-${batch.periodStart}-${batch.periodEnd}`}
+                    className="flex items-center justify-between bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm"
+                  >
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800">{batch.branchName}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {new Date(batch.periodStart).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        {" – "}
+                        {new Date(batch.periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">{batch.count} item{batch.count !== 1 ? "s" : ""} · UGX {batch.total.toLocaleString()}</p>
+                    </div>
+                    <button
+                      onClick={() => handleOpenBatchEdit(batch)}
+                      disabled={batchFetching}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-100 rounded-lg transition-colors disabled:opacity-40"
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      Edit Batch
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Table */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
@@ -380,6 +545,16 @@ export default function ExpensesClient({
                       </button>
                     ) : (
                       <>
+                        {userRole === "EXECUTIVE_DIRECTOR" && r.periodStart && (
+                          <button
+                            onClick={() => handleOpenBatchEdit({ branchId: r.branch.id, branchName: r.branch.name, periodStart: r.periodStart!, periodEnd: r.periodEnd! })}
+                            disabled={batchFetching}
+                            className="p-2.5 text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-40"
+                            title="Edit full batch for this period"
+                          >
+                            <Layers className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => setEditTarget(r)}
                           className="p-2.5 text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
@@ -605,14 +780,84 @@ onError={(msg) => addToast("error", msg)}
                 disabled={deleting}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-60 rounded-xl transition-colors"
               >
-                {deleting ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-    </>
-  );
+{deleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )}
+
+  {/* Bulk Add Modal */}
+  <BulkExpenseModal
+    key={`${bulkAddDefaults.branchId ?? ""}-${bulkAddDefaults.periodPreset ?? ""}`}
+    open={bulkAddOpen}
+    onClose={() => { setBulkAddOpen(false); setBulkAddDefaults({}); }}
+    branchOptions={branchOptions}
+    initialBranchId={bulkAddDefaults.branchId}
+    initialPeriodPreset={bulkAddDefaults.periodPreset}
+    onSuccess={(newRecords) => {
+      const mapped = newRecords.map((r: unknown) => {
+        const record = r as {
+          id: string; date: string; periodStart?: string; periodEnd?: string;
+          category: string; description: string; amount: string; paymentMethod: string;
+          receiptReference: string | null; isFlagged: boolean; flaggedAt: string | null;
+          branch: { id: string; name: string }; recordedBy: { id: string; fullName: string };
+          createdAt: string;
+        };
+        return {
+          id: record.id,
+          date: record.date,
+          periodStart: record.periodStart,
+          periodEnd: record.periodEnd,
+          category: record.category,
+          description: record.description,
+          amount: String(record.amount),
+          paymentMethod: record.paymentMethod,
+          receiptReference: record.receiptReference,
+          isFlagged: record.isFlagged,
+          flaggedAt: record.flaggedAt,
+          branch: record.branch,
+          recordedBy: record.recordedBy,
+          createdAt: record.createdAt,
+        };
+      });
+      setRecords((prev) => [...mapped, ...prev]);
+      setBulkAddOpen(false);
+      addToast("success", `${newRecords.length} expenses recorded`);
+    }}
+    onError={(msg) => addToast("error", msg)}
+  />
+
+  {/* Bulk Edit Modal */}
+  {bulkEditData && (
+    <BulkExpenseEditModal
+      open={bulkEditOpen}
+      onClose={() => {
+        setBulkEditOpen(false);
+        setBulkEditData(null);
+      }}
+      branchId={bulkEditData.branchId}
+      branchName={bulkEditData.branchName}
+      periodStart={bulkEditData.periodStart}
+      periodEnd={bulkEditData.periodEnd}
+      initialRecords={bulkEditData.records.map((r) => ({
+        ...r,
+        amount: Number(r.amount),
+      }))}
+      onSuccess={() => {
+        setBulkEditOpen(false);
+        setBulkEditData(null);
+        addToast("success", "Expenses updated");
+        window.location.reload();
+      }}
+      onError={(msg) => addToast("error", msg)}
+      onDeleted={(ids) => {
+        setRecords((prev) => prev.filter((r) => !ids.includes(r.id)));
+      }}
+    />
+  )}
+  </>
+);
 }
 
 interface ExpenseFormModalProps {

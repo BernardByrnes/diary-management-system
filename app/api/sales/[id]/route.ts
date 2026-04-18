@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import { updateSaleSchema } from "@/lib/validations/sale";
 import { createAuditLog } from "@/lib/utils/audit";
 import { getAvailableLitersForSaleEdit } from "@/lib/utils/stock";
+import { getFifoStateForBranch } from "@/lib/utils/fifo";
 import { getActiveUserOrError } from "@/lib/utils/session";
 
 export async function PATCH(
@@ -49,24 +50,6 @@ export async function PATCH(
   const data = parsed.data;
 
   const targetBranchId = data.branchId ?? existing.branchId;
-  const targetMilkSupplyId =
-    data.milkSupplyId !== undefined ? data.milkSupplyId : existing.milkSupplyId;
-
-  if (targetMilkSupplyId) {
-    const supply = await prisma.milkSupply.findUnique({
-      where: { id: targetMilkSupplyId },
-      select: { branchId: true },
-    });
-    if (!supply || supply.branchId !== targetBranchId) {
-      return NextResponse.json(
-        {
-          error:
-            "The selected delivery batch must belong to the same branch as this sale.",
-        },
-        { status: 400 }
-      );
-    }
-  }
 
   const newLitersSold =
     data.litersSold !== undefined ? data.litersSold : Number(existing.litersSold);
@@ -91,9 +74,19 @@ export async function PATCH(
     ? newLitersSold * newPricePerLiter
     : undefined;
 
+  // Re-compute FIFO lot assignment when branch or liters change.
+  const branchChanged = data.branchId !== undefined && data.branchId !== existing.branchId;
+  const litersChanged = data.litersSold !== undefined;
+  let newMilkSupplyId = existing.milkSupplyId;
+  if (branchChanged || litersChanged) {
+    const fifo = await getFifoStateForBranch(targetBranchId);
+    newMilkSupplyId = fifo.milkSupplyId;
+  }
+
   const updateData: Record<string, unknown> = { ...data };
   if (data.date) updateData.date = new Date(data.date);
   if (revenue !== undefined) updateData.revenue = revenue;
+  updateData.milkSupplyId = newMilkSupplyId;
 
   const sale = await prisma.sale.update({
     where: { id },

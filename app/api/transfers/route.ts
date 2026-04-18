@@ -3,6 +3,7 @@ import { getActiveUserOrError } from "@/lib/utils/session";
 import { prisma } from "@/lib/db/prisma";
 import { createAuditLog } from "@/lib/utils/audit";
 import { createNotification } from "@/lib/utils/notifications";
+import { getFifoStateForBranch } from "@/lib/utils/fifo";
 import { z } from "zod";
 
 const transferSchema = z.object({
@@ -92,11 +93,16 @@ export async function POST(request: Request) {
   const isED = user.role === "EXECUTIVE_DIRECTOR";
   const now = new Date();
 
+  // Inherit the retail price of the source branch's current FIFO lot so the
+  // destination branch knows what price to sell this milk at.
+  const { retailPricePerLiter } = await getFifoStateForBranch(sourceBranchId);
+
   const transfer = await prisma.milkTransfer.create({
     data: {
       date: new Date(date),
       liters,
       costPerLiter,
+      retailPricePerLiter: retailPricePerLiter ?? undefined,
       reason,
       sourceBranchId,
       destinationBranchId,

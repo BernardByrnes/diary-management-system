@@ -34,32 +34,23 @@ export async function setMockAuthUserId(userId: string | null): Promise<void> {
   });
 }
 
-export type SeedRole = "ED" | "MANAGER" | "OWNER";
+export type SeedRole = "ED";
 
 const SEED = {
   ED_PHONE: "0700000001",
   ED_PASSWORD: "Admin@1234",
-  MANAGER_PHONE: "0700000004",
-  MANAGER_PASSWORD: "Temp@1234",
-  OWNER_PHONE: "0700000002",
-  OWNER_PASSWORD: "Temp@1234",
 } as const;
 
-/** Resolves seed user id by role (requires db:seed). */
+/** Resolves seed user id by role (only ED remains - create other users in tests). */
 export async function seedUserId(role: SeedRole): Promise<string> {
-  const phone =
-    role === "ED"
-      ? SEED.ED_PHONE
-      : role === "MANAGER"
-        ? SEED.MANAGER_PHONE
-        : SEED.OWNER_PHONE;
+  const phone = SEED.ED_PHONE;
   const u = await prisma.user.findUnique({
     where: { phone },
     select: { id: true, role: true },
   });
   if (!u) {
     throw new Error(
-      `Seed user (${role}) not found for phone ${phone}. Run: npm run db:seed`
+      `ED user not found. Database may not be properly seeded.`
     );
   }
   return u.id;
@@ -71,20 +62,17 @@ export async function seedCredentials(role: SeedRole): Promise<{
   userId: string;
   dbRole: Role;
 }> {
-  const phone =
-    role === "ED"
-      ? SEED.ED_PHONE
-      : role === "MANAGER"
-        ? SEED.MANAGER_PHONE
-        : SEED.OWNER_PHONE;
-  const password =
-    role === "ED" ? SEED.ED_PASSWORD : role === "MANAGER" ? SEED.MANAGER_PASSWORD : SEED.OWNER_PASSWORD;
+  if (role !== "ED") {
+    throw new Error(`Only ED role is available. Create test users in your test setup.`);
+  }
+  const phone = SEED.ED_PHONE;
+  const password = SEED.ED_PASSWORD;
   const u = await prisma.user.findUnique({
     where: { phone },
     select: { id: true, role: true },
   });
   if (!u) {
-    throw new Error(`Seed user not found for ${phone}. Run: npm run db:seed`);
+    throw new Error(`ED user not found. Database may not be properly seeded.`);
   }
   return { phone, password, userId: u.id, dbRole: u.role };
 }
@@ -104,18 +92,18 @@ export async function activateUser(userId: string): Promise<void> {
   });
 }
 
-/** Looks up branch id by unique name from seed (e.g. "Bwera Nyendo"). */
+/** Looks up branch id by unique name - CREATE BRANCHES IN TEST SETUP. */
 export async function branchIdByName(name: string): Promise<string> {
   const b = await prisma.branch.findUnique({
     where: { name },
     select: { id: true },
   });
-  if (!b) throw new Error(`Branch "${name}" not found. Run: npm run db:seed`);
+  if (!b) throw new Error(`Branch "${name}" not found. Create branches in your test setup.`);
   return b.id;
 }
 
 export async function firstSupplierId(): Promise<string> {
   const s = await prisma.supplier.findFirst({ select: { id: true } });
-  if (!s) throw new Error("No supplier in DB. Run: npm run db:seed");
+  if (!s) throw new Error("No supplier in DB. Create suppliers in your test setup.");
   return s.id;
 }

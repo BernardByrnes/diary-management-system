@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth/auth";
 import { prisma } from "@/lib/db/prisma";
 import { ShoppingCart } from "lucide-react";
 import SalesClient from "@/components/sales/SalesClient";
+import { getFifoStateForBranch } from "@/lib/utils/fifo";
 
 export default async function SalesPage() {
   const session = await auth();
@@ -41,7 +42,7 @@ export default async function SalesPage() {
     orderBy: { name: "asc" },
   });
 
-  const [sales, deliveryChunks] = await Promise.all([
+  const [sales, fifoPrices] = await Promise.all([
     prisma.sale.findMany({
       where: salesWhere,
       include: {
@@ -52,63 +53,11 @@ export default async function SalesPage() {
       orderBy: { date: "desc" },
       take: 200,
     }),
-    Promise.all(
-      branches.map((b) =>
-        prisma.milkSupply.findMany({
-          where: { branchId: b.id },
-          orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-          take: 20,
-          select: {
-            id: true,
-            branchId: true,
-            date: true,
-            liters: true,
-            costPerLiter: true,
-            retailPricePerLiter: true,
-          },
-        })
-      )
-    ),
+    Promise.all(branches.map(async (b) => {
+      const fifo = await getFifoStateForBranch(b.id);
+      return { branchId: b.id, retailPricePerLiter: fifo.retailPricePerLiter };
+    })),
   ]);
-
-  const deliveryRows = deliveryChunks.flat();
-
-  const latestPurchaseCostByBranch = await Promise.all(
-    branches.map(async (b) => {
-      const last = await prisma.milkSupply.findFirst({
-        where: { branchId: b.id },
-        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-        select: { costPerLiter: true, date: true, retailPricePerLiter: true },
-      });
-      if (!last) {
-        return {
-          branchId: b.id,
-          costPerLiter: 0,
-          date: "",
-          retailPricePerLiter: null as number | null,
-        };
-      }
-      return {
-        branchId: b.id,
-        costPerLiter: Number(last.costPerLiter),
-        date: last.date.toISOString(),
-        retailPricePerLiter:
-          last.retailPricePerLiter != null
-            ? Number(last.retailPricePerLiter)
-            : null,
-      };
-    })
-  );
-
-  const deliveryOptions = deliveryRows.map((r) => ({
-    id: r.id,
-    branchId: r.branchId,
-    date: r.date.toISOString(),
-    liters: r.liters.toString(),
-    costPerLiter: r.costPerLiter.toString(),
-    retailPricePerLiter:
-      r.retailPricePerLiter != null ? r.retailPricePerLiter.toString() : null,
-  }));
 
   const serializedRecords = sales.map((s) => ({
     id: s.id,
@@ -148,10 +97,7 @@ export default async function SalesPage() {
       <SalesClient
         initialRecords={serializedRecords}
         branchOptions={branches}
-        latestPurchaseCostByBranch={latestPurchaseCostByBranch.filter(
-          (x) => x.date !== ""
-        )}
-        deliveryOptions={deliveryOptions}
+        fifoPriceByBranch={fifoPrices}
         userRole={user.role}
         managedBranchIds={managedBranchIds}
       />
