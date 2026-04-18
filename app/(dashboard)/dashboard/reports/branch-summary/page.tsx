@@ -3,8 +3,8 @@ import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth/auth";
 import { prisma, withDbRetry } from "@/lib/db/prisma";
 import { ChevronLeft, Building2 } from "lucide-react";
-import { Suspense } from "react";
 import BranchSummaryFilters from "@/components/reports/BranchSummaryFilters";
+import { BranchSummaryNavProvider } from "@/components/reports/BranchSummaryNavContext";
 import BranchSummaryDownloadButton from "@/components/reports/BranchSummaryDownloadButton";
 import ShareReportButton from "@/components/reports/ShareReportButton";
 import { loadBranchSummaryReportData } from "@/lib/utils/branch-summary-report";
@@ -114,93 +114,98 @@ export default async function BranchSummaryPage({
           )}
       </div>
 
-      <Suspense>
+      <BranchSummaryNavProvider>
         <BranchSummaryFilters
+          key={`${branchId}:${from ?? ""}:${to ?? ""}`}
           branches={branches}
           branchId={branchId}
           from={from ?? ""}
           to={to ?? ""}
         />
-      </Suspense>
 
-      <p className="text-sm text-gray-600 max-w-3xl">
-        Comprehensive snapshot for one branch — financials, volumes, suppliers, expenses, banking,
-        transfers, and key operational signals. Export the PDF to share with the branch owner.
-      </p>
+        <p className="text-sm text-gray-600 max-w-3xl">
+          Comprehensive snapshot for one branch — financials, volumes, suppliers, expenses, banking,
+          transfers, and key operational signals. Export the PDF to share with the branch owner.
+        </p>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {[
-          { label: "Revenue", value: f.revenue, color: "text-gray-900" },
-          { label: "Milk costs", value: f.milkCost, color: "text-gray-900" },
-          { label: "Expenses", value: f.expenses, color: "text-gray-900" },
-          {
-            label: "Gross profit",
-            value: f.grossProfit,
-            color: f.grossProfit >= 0 ? "text-green-700" : "text-red-600",
-          },
-          {
-            label: "Net profit",
-            value: f.netProfit,
-            color: f.netProfit >= 0 ? "text-green-700" : "text-red-600",
-          },
-        ].map((card) => (
-          <div
-            key={card.label}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
-          >
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-              {card.label}
-            </p>
-            <p className={`text-lg font-bold ${card.color}`}>
-              UGX {card.value.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">{data.branch.name}</p>
+        {/* Padding on each cell guarantees visible gutters even if CSS `gap` is stripped/overridden */}
+        <div className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {[
+            { label: "Revenue", value: f.revenue, color: "text-gray-900" },
+            { label: "Milk costs", value: f.milkCost, color: "text-gray-900" },
+            { label: "Expenses", value: f.expenses, color: "text-gray-900" },
+            {
+              label: "Gross profit",
+              value: f.grossProfit,
+              color: f.grossProfit >= 0 ? "text-green-700" : "text-red-600",
+            },
+            {
+              label: "Net profit",
+              value: f.netProfit,
+              color: f.netProfit >= 0 ? "text-green-700" : "text-red-600",
+            },
+          ].map((card) => (
+            <div key={card.label} className="min-w-0 p-2 sm:p-2.5">
+              <div className="h-full min-h-28 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                  {card.label}
+                </p>
+                <p className={`text-lg font-bold ${card.color}`}>
+                  UGX {card.value.toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">{data.branch.name}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid w-full grid-cols-1 md:grid-cols-2">
+          <div className="min-w-0 p-2">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h2 className="font-semibold text-gray-900 text-sm mb-3">Volumes</h2>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Milk received</dt>
+                  <dd className="font-mono text-gray-900">
+                    {data.volumes.milkLitersIn.toLocaleString(undefined, { maximumFractionDigits: 1 })} L
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Milk sold</dt>
+                  <dd className="font-mono text-gray-900">
+                    {data.volumes.milkLitersSold.toLocaleString(undefined, { maximumFractionDigits: 1 })} L
+                  </dd>
+                </div>
+              </dl>
+            </div>
           </div>
-        ))}
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h2 className="font-semibold text-gray-900 text-sm mb-3">Volumes</h2>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Milk received</dt>
-              <dd className="font-mono text-gray-900">
-                {data.volumes.milkLitersIn.toLocaleString(undefined, { maximumFractionDigits: 1 })} L
-              </dd>
+          <div className="min-w-0 p-2">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h2 className="font-semibold text-gray-900 text-sm mb-3">Banking (period)</h2>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Deposits</dt>
+                  <dd className="font-mono text-gray-900">{data.banking.depositCount}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Total deposited</dt>
+                  <dd className="font-mono text-gray-900">
+                    UGX {data.banking.totalDeposited.toLocaleString()}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">With discrepancy</dt>
+                  <dd
+                    className={`font-mono ${data.banking.discrepancyCount > 0 ? "text-red-600" : "text-gray-900"}`}
+                  >
+                    {data.banking.discrepancyCount}
+                  </dd>
+                </div>
+              </dl>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Milk sold</dt>
-              <dd className="font-mono text-gray-900">
-                {data.volumes.milkLitersSold.toLocaleString(undefined, { maximumFractionDigits: 1 })} L
-              </dd>
-            </div>
-          </dl>
+          </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h2 className="font-semibold text-gray-900 text-sm mb-3">Banking (period)</h2>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Deposits</dt>
-              <dd className="font-mono text-gray-900">{data.banking.depositCount}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Total deposited</dt>
-              <dd className="font-mono text-gray-900">
-                UGX {data.banking.totalDeposited.toLocaleString()}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500">With discrepancy</dt>
-              <dd
-                className={`font-mono ${data.banking.discrepancyCount > 0 ? "text-red-600" : "text-gray-900"}`}
-              >
-                {data.banking.discrepancyCount}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </div>
+      </BranchSummaryNavProvider>
     </div>
   );
 }
