@@ -22,9 +22,10 @@ interface TopbarProps {
   role: Role;
   userId: string;
   onMenuToggle: () => void;
+  organizationName?: string;
 }
 
-export default function Topbar({ fullName, role, userId, onMenuToggle }: TopbarProps) {
+export default function Topbar({ fullName, role, userId, onMenuToggle, organizationName }: TopbarProps) {
   return (
     <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       {/* Left: hamburger + title */}
@@ -37,7 +38,7 @@ export default function Topbar({ fullName, role, userId, onMenuToggle }: TopbarP
           <Menu className="w-5 h-5" />
         </button>
         <span className="text-lg font-semibold text-gray-800 hidden sm:block">
-          Bwera Farmers Cooperative
+          {organizationName ?? "Bwera Farmers Cooperative"}
         </span>
       </div>
 

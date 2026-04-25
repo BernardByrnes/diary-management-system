@@ -13,6 +13,7 @@ interface DashboardShellProps {
   fullName: string;
   role: Role;
   userId: string;
+  organizationName?: string;
 }
 
 export default function DashboardShell({
@@ -20,6 +21,7 @@ export default function DashboardShell({
   fullName,
   role,
   userId,
+  organizationName,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -30,6 +32,7 @@ export default function DashboardShell({
         role={role}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        organizationName={organizationName}
       />
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
@@ -38,6 +41,7 @@ export default function DashboardShell({
           role={role}
           userId={userId}
           onMenuToggle={() => setSidebarOpen((prev) => !prev)}
+          organizationName={organizationName}
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}

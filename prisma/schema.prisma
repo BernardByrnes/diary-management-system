@@ -194,6 +194,8 @@ model MilkSupply {
   supplier   Supplier @relation(fields: [supplierId], references: [id])
   recordedBy User     @relation("SupplyRecorder", fields: [recordedById], references: [id])
   sales      Sale[]
+
+  @@index([branchId, date])
 }
 
 model Sale {
@@ -212,6 +214,8 @@ model Sale {
   branch     Branch      @relation(fields: [branchId], references: [id])
   milkSupply MilkSupply? @relation(fields: [milkSupplyId], references: [id])
   recordedBy User        @relation("SaleRecorder", fields: [recordedById], references: [id])
+
+  @@index([branchId, date])
 }
 
 model Expense {
@@ -237,6 +241,9 @@ model Expense {
   branch Branch @relation(fields: [branchId], references: [id])
   recordedBy User @relation("ExpenseRecorder", fields: [recordedById], references: [id])
   flaggedBy User? @relation("ExpenseFlagged", fields: [flaggedById], references: [id])
+
+  @@index([branchId, date])
+  @@index([branchId, periodStart, periodEnd])
 }
 
 model Advance {
@@ -282,6 +289,9 @@ model MilkTransfer {
   destinationBranch Branch @relation("DestinationBranch", fields: [destinationBranchId], references: [id])
   requestedBy       User   @relation("TransferRequester", fields: [requestedById], references: [id])
   approvedBy        User?  @relation("TransferApprover", fields: [approvedById], references: [id])
+
+  @@index([sourceBranchId, date])
+  @@index([destinationBranchId, date])
 }
 
 model MilkSpoilage {
@@ -317,6 +327,8 @@ model BankDeposit {
 
   branch     Branch @relation(fields: [branchId], references: [id])
   recordedBy User   @relation("DepositRecorder", fields: [recordedById], references: [id])
+
+  @@index([branchId, date])
 }
 
 model LactometerReading {
@@ -354,6 +366,7 @@ model SupplierPayment {
   supplier Supplier @relation(fields: [supplierId], references: [id])
 
   @@unique([supplierId, periodStart, periodEnd])
+  @@index([supplierId, status])
 }
 
 model ProfitDistribution {
@@ -393,6 +406,8 @@ model Notification {
   updatedAt         DateTime            @updatedAt
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
 }
 
 model AuditLog {
@@ -405,6 +420,8 @@ model AuditLog {
   createdAt  DateTime    @default(now())
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }
 
 model StockSnapshot {
@@ -428,6 +445,8 @@ model StockSnapshot {
   branch     Branch @relation(fields: [branchId], references: [id])
   recordedBy User   @relation("SnapshotRecorder", fields: [recordedById], references: [id])
   reviewedBy User?  @relation("SnapshotReviewer", fields: [reviewedById], references: [id])
+
+  @@index([branchId, date])
 }
 
 model SystemSettings {

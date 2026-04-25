@@ -141,9 +141,10 @@ interface SidebarProps {
   role: Role;
   isOpen: boolean;
   onClose: () => void;
+  organizationName?: string;
 }
 
-export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ role, isOpen, onClose, organizationName }: SidebarProps) {
   const pathname = usePathname();
   const sections = navSections[role] ?? [];
 
@@ -167,7 +168,7 @@ export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
           <div className="w-10 h-10 rounded-xl overflow-hidden bg-white flex items-center justify-center shrink-0 p-1.5 shadow-sm ring-1 ring-white/20">
             <Image
               src="/image-better.png"
-              alt="Bwera Farmers Cooperative"
+              alt={organizationName ?? "Bwera Farmers Cooperative"}
               width={40}
               height={40}
               className="object-contain scale-[1.45] origin-center"
@@ -175,7 +176,7 @@ export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
           </div>
           <div>
             <p className="font-bold text-xs leading-snug text-white">
-              Bwera Farmers Cooperative
+              {organizationName ?? "Bwera Farmers Cooperative"}
             </p>
           </div>
         </div>
