@@ -39,6 +39,7 @@ export default function SalesClient({
   branchOptions,
   fifoPriceByBranch,
   userRole,
+  managedBranchIds,
 }: Props) {
   const [records, setRecords] = useState<SaleRecord[]>(initialRecords);
   const [search, setSearch] = useState("");
@@ -294,6 +295,8 @@ export default function SalesClient({
         onClose={() => setAddOpen(false)}
         branchOptions={branchOptions}
         fifoPriceByBranch={fifoPriceByBranch}
+        userRole={userRole}
+        managedBranchIds={managedBranchIds}
         onSuccess={(record) => {
           setRecords((prev) => [record, ...prev]);
           setAddOpen(false);
@@ -310,16 +313,18 @@ export default function SalesClient({
           editRecord={editTarget}
           branchOptions={branchOptions}
           fifoPriceByBranch={fifoPriceByBranch}
+          userRole={userRole}
+          managedBranchIds={managedBranchIds}
           onSuccess={(updated) => {
             setRecords((prev) =>
               prev.map((r) => (r.id === updated.id ? updated : r))
             );
             setEditTarget(null);
-addToast("success", "Record updated successfully");
-            }}
-            onError={(msg) => addToast("error", msg)}
-          />
-        )}
+            addToast("success", "Record updated successfully");
+          }}
+          onError={(msg) => addToast("error", msg)}
+        />
+      )}
 
         {/* View Modal */}
         {viewTarget && (
@@ -407,6 +412,8 @@ function SaleFormModal({
   editRecord,
   branchOptions,
   fifoPriceByBranch,
+  userRole,
+  managedBranchIds,
   onSuccess,
   onError,
 }: {
@@ -415,6 +422,8 @@ function SaleFormModal({
   editRecord?: SaleRecord;
   branchOptions: { id: string; name: string }[];
   fifoPriceByBranch: { branchId: string; retailPricePerLiter: number | null }[];
+  userRole: string;
+  managedBranchIds: string[];
   onSuccess: (record: SaleRecord) => void;
   onError: (msg: string) => void;
 }) {
@@ -453,6 +462,11 @@ function SaleFormModal({
   const fifoHint = fifoPriceByBranch.find((x) => x.branchId === branchIdWatch);
 
   const onSubmit = async (data: SaleInput) => {
+    if (userRole === "MANAGER" && data.branchId && !managedBranchIds.includes(data.branchId)) {
+      onError("You are not authorized to record sales for this branch.");
+      return;
+    }
+
     const url = editRecord ? `/api/sales/${editRecord.id}` : "/api/sales";
     const method = editRecord ? "PATCH" : "POST";
 

@@ -19,14 +19,33 @@ export async function createNotification({
   relatedEntityType?: string;
   relatedEntityId?: string;
 }) {
-  // Deduplicate: don't create the same type+entityId notification more than once
+  // Deduplicate: update if urgency increases or message changes; skip if identical
   if (relatedEntityId) {
     const existing = await withDbRetry(() =>
       prisma.notification.findFirst({
         where: { userId, type, relatedEntityId },
+        select: { id: true, urgency: true, message: true, isRead: true },
       })
     );
-    if (existing) return existing;
+    if (existing) {
+      const urgencyOrder: Record<string, number> = { LOW: 0, MEDIUM: 1, HIGH: 2 };
+      const urgencyEscalated = urgencyOrder[urgency] > urgencyOrder[existing.urgency];
+      const messageChanged = existing.message !== message;
+      if (!urgencyEscalated && !messageChanged) return existing;
+      return withDbRetry(() =>
+        prisma.notification.update({
+          where: { id: existing.id },
+          data: {
+            urgency,
+            message,
+            title,
+            // Re-surface as unread if escalating urgency
+            isRead: urgencyEscalated ? false : existing.isRead,
+            updatedAt: new Date(),
+          },
+        })
+      );
+    }
   }
 
   const notification = await withDbRetry(() =>

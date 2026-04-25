@@ -93,9 +93,10 @@ export async function POST(request: Request) {
   const isED = user.role === "EXECUTIVE_DIRECTOR";
   const now = new Date();
 
-  // Inherit the retail price of the source branch's current FIFO lot so the
-  // destination branch knows what price to sell this milk at.
-  const { retailPricePerLiter } = await getFifoStateForBranch(sourceBranchId);
+  // Inherit the retail price and source lot ID from the source branch's current
+  // FIFO lot so the destination branch can trace and price the milk correctly.
+  const { retailPricePerLiter, milkSupplyId: sourceMilkSupplyId } =
+    await getFifoStateForBranch(sourceBranchId);
 
   const transfer = await prisma.milkTransfer.create({
     data: {
@@ -103,6 +104,7 @@ export async function POST(request: Request) {
       liters,
       costPerLiter,
       retailPricePerLiter: retailPricePerLiter ?? undefined,
+      sourceMilkSupplyId: sourceMilkSupplyId ?? undefined,
       reason,
       sourceBranchId,
       destinationBranchId,

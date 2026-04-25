@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Pencil, PowerOff, Power, Truck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,10 +25,14 @@ interface SuppliersClientProps {
 
 let toastCounter = 0;
 
-export default function SuppliersClient({
-  initialSuppliers,
-}: SuppliersClientProps) {
-  const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
+async function fetchSuppliers(): Promise<Supplier[]> {
+  const res = await fetch("/api/suppliers");
+  if (!res.ok) throw new Error("Failed to load suppliers");
+  return res.json();
+}
+
+export default function SuppliersClient({ initialSuppliers }: SuppliersClientProps) {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [addOpen, setAddOpen] = useState(false);
@@ -42,34 +47,41 @@ export default function SuppliersClient({
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const { data: suppliers = initialSuppliers } = useQuery({
+    queryKey: ["suppliers"],
+    queryFn: fetchSuppliers,
+    initialData: initialSuppliers,
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async (supplier: Supplier) => {
+      const res = await fetch(`/api/suppliers/${supplier.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !supplier.isActive }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
+      return data as Supplier;
+    },
+    onSuccess: (updated, supplier) => {
+      queryClient.setQueryData<Supplier[]>(["suppliers"], (prev) =>
+        prev?.map((s) => (s.id === updated.id ? updated : s)) ?? prev,
+      );
+      addToast(
+        "success",
+        `${supplier.name} ${supplier.isActive ? "deactivated" : "activated"}`,
+      );
+    },
+    onError: (err: Error) => addToast("error", err.message),
+  });
+
   const filtered = suppliers.filter(
     (s) =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.phone.includes(search) ||
-      (s.location ?? "").toLowerCase().includes(search.toLowerCase())
+      (s.location ?? "").toLowerCase().includes(search.toLowerCase()),
   );
-
-  async function toggleActive(supplier: Supplier) {
-    const res = await fetch(`/api/suppliers/${supplier.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !supplier.isActive }),
-    });
-    if (res.ok) {
-      setSuppliers((prev) =>
-        prev.map((s) =>
-          s.id === supplier.id ? { ...s, isActive: !s.isActive } : s
-        )
-      );
-      addToast(
-        "success",
-        `${supplier.name} ${supplier.isActive ? "deactivated" : "activated"}`
-      );
-    } else {
-      const data = await res.json();
-      addToast("error", data.error ?? "Something went wrong");
-    }
-  }
 
   return (
     <>
@@ -138,22 +150,15 @@ export default function SuppliersClient({
                 </tr>
               ) : (
                 filtered.map((supplier) => (
-                  <tr
-                    key={supplier.id}
-                    className="hover:bg-gray-50/70 transition-colors"
-                  >
+                  <tr key={supplier.id} className="hover:bg-gray-50/70 transition-colors">
                     <td className="px-5 py-3.5">
-                      <span className="font-medium text-gray-900">
-                        {supplier.name}
-                      </span>
+                      <span className="font-medium text-gray-900">{supplier.name}</span>
                     </td>
                     <td className="px-5 py-3.5 text-gray-500 font-mono text-xs hidden sm:table-cell">
                       {supplier.phone}
                     </td>
                     <td className="px-5 py-3.5 text-gray-500 hidden md:table-cell">
-                      {supplier.location ?? (
-                        <span className="text-gray-400">—</span>
-                      )}
+                      {supplier.location ?? <span className="text-gray-400">—</span>}
                     </td>
                     <td className="px-5 py-3.5">
                       <Badge active={supplier.isActive} />
@@ -168,8 +173,9 @@ export default function SuppliersClient({
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => toggleActive(supplier)}
-                          className={`p-1.5 rounded-lg transition-colors ${
+                          onClick={() => toggleMutation.mutate(supplier)}
+                          disabled={toggleMutation.isPending}
+                          className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 ${
                             supplier.isActive
                               ? "text-gray-400 hover:text-red-600 hover:bg-red-50"
                               : "text-gray-400 hover:text-green-700 hover:bg-green-50"
@@ -200,7 +206,9 @@ export default function SuppliersClient({
         open={addOpen}
         onClose={() => setAddOpen(false)}
         onSuccess={(s) => {
-          setSuppliers((prev) => [s, ...prev]);
+          queryClient.setQueryData<Supplier[]>(["suppliers"], (prev) =>
+            prev ? [s, ...prev] : [s],
+          );
           setAddOpen(false);
           addToast("success", `Supplier "${s.name}" added`);
         }}
@@ -214,8 +222,8 @@ export default function SuppliersClient({
           onClose={() => setEditTarget(null)}
           editSupplier={editTarget}
           onSuccess={(updated) => {
-            setSuppliers((prev) =>
-              prev.map((s) => (s.id === updated.id ? updated : s))
+            queryClient.setQueryData<Supplier[]>(["suppliers"], (prev) =>
+              prev?.map((s) => (s.id === updated.id ? updated : s)) ?? prev,
             );
             setEditTarget(null);
             addToast("success", `"${updated.name}" updated`);
@@ -255,9 +263,7 @@ function SupplierFormModal({
   });
 
   const onSubmit = async (data: SupplierInput) => {
-    const url = editSupplier
-      ? `/api/suppliers/${editSupplier.id}`
-      : "/api/suppliers";
+    const url = editSupplier ? `/api/suppliers/${editSupplier.id}` : "/api/suppliers";
     const method = editSupplier ? "PATCH" : "POST";
 
     const res = await fetch(url, {
@@ -315,8 +321,7 @@ function SupplierFormModal({
 
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1.5">
-            Location{" "}
-            <span className="text-gray-400 font-normal">(optional)</span>
+            Location <span className="text-gray-400 font-normal">(optional)</span>
           </label>
           <input
             {...register("location")}
@@ -341,11 +346,7 @@ function SupplierFormModal({
             disabled={isSubmitting}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-green-700 hover:bg-green-800 disabled:opacity-60 rounded-xl transition-colors"
           >
-            {isSubmitting
-              ? "Saving..."
-              : editSupplier
-              ? "Save Changes"
-              : "Add Supplier"}
+            {isSubmitting ? "Saving..." : editSupplier ? "Save Changes" : "Add Supplier"}
           </button>
         </div>
       </form>

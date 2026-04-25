@@ -43,6 +43,7 @@ export default function MilkSupplyClient({
   branchOptions,
   supplierOptions,
   userRole,
+  managedBranchIds,
 }: Props) {
   const [records, setRecords] = useState<MilkSupplyRecord[]>(initialRecords);
   const [search, setSearch] = useState("");
@@ -330,6 +331,8 @@ export default function MilkSupplyClient({
         onClose={() => setAddOpen(false)}
         branchOptions={branchOptions}
         supplierOptions={supplierOptions}
+        userRole={userRole}
+        managedBranchIds={managedBranchIds}
         onSuccess={(record) => {
           setRecords((prev) => [record, ...prev]);
           setAddOpen(false);
@@ -346,6 +349,8 @@ export default function MilkSupplyClient({
           editRecord={editTarget}
           branchOptions={branchOptions}
           supplierOptions={supplierOptions}
+          userRole={userRole}
+          managedBranchIds={managedBranchIds}
           onSuccess={(updated) => {
             setRecords((prev) =>
               prev.map((r) => (r.id === updated.id ? updated : r))
@@ -366,6 +371,8 @@ function MilkSupplyFormModal({
   editRecord,
   branchOptions,
   supplierOptions,
+  userRole,
+  managedBranchIds,
   onSuccess,
   onError,
 }: {
@@ -374,6 +381,8 @@ function MilkSupplyFormModal({
   editRecord?: MilkSupplyRecord;
   branchOptions: { id: string; name: string }[];
   supplierOptions: { id: string; name: string }[];
+  userRole: string;
+  managedBranchIds: string[];
   onSuccess: (record: MilkSupplyRecord) => void;
   onError: (msg: string) => void;
 }) {
@@ -398,6 +407,11 @@ function MilkSupplyFormModal({
   });
 
   const onSubmit = async (data: MilkSupplyInput) => {
+    if (userRole === "MANAGER" && data.branchId && !managedBranchIds.includes(data.branchId)) {
+      onError("You are not authorized to record supply for this branch.");
+      return;
+    }
+
     const url = editRecord
       ? `/api/milk-supply/${editRecord.id}`
       : "/api/milk-supply";

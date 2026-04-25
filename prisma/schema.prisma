@@ -194,6 +194,7 @@ model MilkSupply {
   supplier   Supplier @relation(fields: [supplierId], references: [id])
   recordedBy User     @relation("SupplyRecorder", fields: [recordedById], references: [id])
   sales      Sale[]
+  transfers  MilkTransfer[] @relation("SupplyTransfers")
 
   @@index([branchId, date])
 }
@@ -277,6 +278,8 @@ model MilkTransfer {
   retailPricePerLiter Decimal?       @db.Decimal(10, 2)
   reason              String
   status              TransferStatus @default(PENDING)
+  /// The original MilkSupply lot this transfer draws from (for FIFO traceability).
+  sourceMilkSupplyId  String?
   sourceBranchId      String
   destinationBranchId String
   requestedById       String
@@ -285,6 +288,7 @@ model MilkTransfer {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
+  sourceMilkSupply  MilkSupply? @relation("SupplyTransfers", fields: [sourceMilkSupplyId], references: [id])
   sourceBranch      Branch @relation("SourceBranch", fields: [sourceBranchId], references: [id])
   destinationBranch Branch @relation("DestinationBranch", fields: [destinationBranchId], references: [id])
   requestedBy       User   @relation("TransferRequester", fields: [requestedById], references: [id])

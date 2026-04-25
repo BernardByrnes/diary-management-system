@@ -3,7 +3,10 @@ import { prisma } from "@/lib/db/prisma";
 export type FifoState = {
   /** Retail price per liter of the current FIFO lot. Null if no stock or no price set. */
   retailPricePerLiter: number | null;
-  /** If the current lot is a direct delivery, its ID (for sale linkage). Null for transfer lots. */
+  /**
+   * The originating MilkSupply lot ID for this lot — either the delivery itself
+   * or the delivery the transferred milk came from. Null if unresolvable.
+   */
   milkSupplyId: string | null;
 };
 
@@ -28,7 +31,7 @@ export async function getFifoStateForBranch(branchId: string): Promise<FifoState
       prisma.milkTransfer.findMany({
         where: { destinationBranchId: branchId, status: "APPROVED" },
         orderBy: { date: "asc" },
-        select: { id: true, date: true, liters: true, retailPricePerLiter: true },
+        select: { id: true, date: true, liters: true, retailPricePerLiter: true, sourceMilkSupplyId: true },
       }),
       prisma.sale.aggregate({
         where: { branchId },
@@ -50,7 +53,8 @@ export async function getFifoStateForBranch(branchId: string): Promise<FifoState
     date: Date;
     liters: number;
     retailPricePerLiter: number | null;
-    isDelivery: boolean;
+    /** The originating MilkSupply ID — direct for deliveries, propagated for transfers. */
+    milkSupplyId: string | null;
   };
 
   const lots: Lot[] = [
@@ -59,14 +63,14 @@ export async function getFifoStateForBranch(branchId: string): Promise<FifoState
       date: d.date,
       liters: Number(d.liters),
       retailPricePerLiter: d.retailPricePerLiter != null ? Number(d.retailPricePerLiter) : null,
-      isDelivery: true,
+      milkSupplyId: d.id,
     })),
     ...transfersIn.map((t) => ({
       id: t.id,
       date: t.date,
       liters: Number(t.liters),
       retailPricePerLiter: t.retailPricePerLiter != null ? Number(t.retailPricePerLiter) : null,
-      isDelivery: false,
+      milkSupplyId: t.sourceMilkSupplyId ?? null,
     })),
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
@@ -83,7 +87,7 @@ export async function getFifoStateForBranch(branchId: string): Promise<FifoState
     } else {
       return {
         retailPricePerLiter: lot.retailPricePerLiter,
-        milkSupplyId: lot.isDelivery ? lot.id : null,
+        milkSupplyId: lot.milkSupplyId,
       };
     }
   }
