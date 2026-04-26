@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatDate } from "@/lib/utils/date";
 import { Plus, Search, Trash2, CheckCircle } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -203,7 +204,7 @@ export default function AdvancesClient({
                 filtered.map((r) => (
                   <tr key={r.id} className="hover:bg-gray-50/70 transition-colors">
                     <td className="px-5 py-3.5 text-gray-700">
-                      {new Date(r.date).toLocaleDateString()}
+                      {formatDate(r.date)}
                     </td>
                     <td className="px-5 py-3.5 font-medium text-gray-900">
                       {r.supplier?.name ?? r.owner?.fullName ?? "—"}

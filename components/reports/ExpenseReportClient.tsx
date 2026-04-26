@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatDate } from "@/lib/utils/date";
 import { Flag, Loader2 } from "lucide-react";
 
 interface Expense {
@@ -81,7 +82,7 @@ export default function ExpenseReportClient({ expenses: initial, isOwner, totalE
                   className={`hover:bg-gray-50/70 ${e.isFlagged ? "bg-amber-50/40" : ""}`}
                 >
                   <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                    {new Date(e.date).toLocaleDateString()}
+                    {formatDate(e.date)}
                   </td>
                   <td className="px-4 py-3 text-gray-700 font-medium">{e.branchName}</td>
                   <td className="px-4 py-3">

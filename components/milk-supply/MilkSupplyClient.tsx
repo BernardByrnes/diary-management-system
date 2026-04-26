@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatDate } from "@/lib/utils/date";
 import { Plus, Search, Pencil, Trash2, FileText, Droplets } from "lucide-react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -78,7 +79,7 @@ export default function MilkSupplyClient({
   async function handleDelete(record: MilkSupplyRecord) {
     if (
       !confirm(
-        `Delete milk supply record for ${record.supplier.name} on ${new Date(record.date).toLocaleDateString()}?`
+        `Delete milk supply record for ${record.supplier.name} on ${formatDate(record.date)}?`
       )
     )
       return;
@@ -161,7 +162,7 @@ export default function MilkSupplyClient({
                     { key: "recordedBy" as const, label: "Recorded By" },
                   ],
                   filtered.map((r) => ({
-                    date: new Date(r.date).toLocaleDateString(),
+                    date: formatDate(r.date),
                     branch: r.branch.name,
                     supplier: r.supplier.name,
                     liters: r.liters,
@@ -193,7 +194,7 @@ export default function MilkSupplyClient({
                 { key: "recordedBy", label: "Recorded By" },
               ]}
               rows={filtered.map((r) => ({
-                date: new Date(r.date).toLocaleDateString(),
+                date: formatDate(r.date),
                 branch: r.branch.name,
                 supplier: r.supplier.name,
                 liters: r.liters,
@@ -269,7 +270,7 @@ export default function MilkSupplyClient({
                   >
                     <td className="px-5 py-3.5">
                       <span className="font-medium text-gray-900">
-                        {new Date(r.date).toLocaleDateString()}
+                        {formatDate(r.date)}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-gray-500 hidden sm:table-cell">

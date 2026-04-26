@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatPeriod } from "@/lib/utils/date";
 import { Plus, Trash2, Calculator } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from "@/lib/validations/expense";
@@ -240,7 +241,7 @@ export default function BulkExpenseModal({ open, onClose, branchOptions, onSucce
             )}
             {periodInfo.periodStart && periodInfo.periodEnd && (
               <p className="text-xs text-green-600 mt-2">
-                Selected: {new Date(periodInfo.periodStart).toLocaleDateString()} – {new Date(periodInfo.periodEnd).toLocaleDateString()}
+                Selected: {formatPeriod(periodInfo.periodStart, periodInfo.periodEnd)}
               </p>
             )}
           </div>
@@ -286,7 +287,7 @@ export default function BulkExpenseModal({ open, onClose, branchOptions, onSucce
           {/* Period Summary */}
           <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
             <p className="text-xs text-green-700">
-              <span className="font-medium">Period:</span> {new Date(periodInfo.periodStart).toLocaleDateString()} – {new Date(periodInfo.periodEnd).toLocaleDateString()}
+              <span className="font-medium">Period:</span> {formatPeriod(periodInfo.periodStart, periodInfo.periodEnd)}
               {" · "}
               <span className="font-medium">Payment:</span> {paymentMethod}
             </p>

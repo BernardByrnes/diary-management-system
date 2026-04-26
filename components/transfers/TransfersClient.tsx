@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatDate } from "@/lib/utils/date";
 import {
   Plus,
   Search,
@@ -244,7 +245,7 @@ export default function TransfersClient({
                     className="hover:bg-gray-50/70 transition-colors"
                   >
                     <td className="px-5 py-3.5 text-gray-700">
-                      {new Date(record.date).toLocaleDateString()}
+                      {formatDate(record.date)}
                     </td>
                     <td className="px-5 py-3.5 hidden md:table-cell">
                       <span className="text-gray-900 font-medium">

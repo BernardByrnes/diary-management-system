@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { formatDate } from "@/lib/utils/date";
 import { Plus, Search, Pencil, Trash2, FileText, ShoppingCart } from "lucide-react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -73,7 +74,7 @@ export default function SalesClient({
   async function handleDelete(record: SaleRecord) {
     if (
       !confirm(
-        `Delete sale record for ${record.branch.name} on ${new Date(record.date).toLocaleDateString()}?`
+        `Delete sale record for ${record.branch.name} on ${formatDate(record.date)}?`
       )
     )
       return;
@@ -144,7 +145,7 @@ export default function SalesClient({
                     { key: "recordedBy" as const, label: "Recorded By" },
                   ],
                   filtered.map((r) => ({
-                    date: new Date(r.date).toLocaleDateString(),
+                    date: formatDate(r.date),
                     branch: r.branch.name,
                     litersSold: r.litersSold,
                     pricePerLiter: r.pricePerLiter,
@@ -172,7 +173,7 @@ export default function SalesClient({
                 { key: "recordedBy", label: "Recorded By" },
               ]}
               rows={filtered.map((r) => ({
-                date: new Date(r.date).toLocaleDateString(),
+                date: formatDate(r.date),
                 branch: r.branch.name,
                 litersSold: r.litersSold,
                 pricePerLiter: r.pricePerLiter,
@@ -241,7 +242,7 @@ export default function SalesClient({
               >
                 <td className="px-5 py-3.5">
                   <span className="font-medium text-gray-900">
-                    {new Date(r.date).toLocaleDateString()}
+                    {formatDate(r.date)}
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-gray-500 hidden sm:table-cell">
@@ -338,7 +339,7 @@ export default function SalesClient({
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Date</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {new Date(viewTarget.date).toLocaleDateString()}
+                    {formatDate(viewTarget.date)}
                   </p>
                 </div>
                 <div>
@@ -361,7 +362,7 @@ export default function SalesClient({
                   <p className="text-xs text-gray-500 mb-1">From Delivery</p>
                   <p className="text-sm text-gray-700">
                     {viewTarget.milkSupply
-                      ? new Date(viewTarget.milkSupply.date).toLocaleDateString()
+                      ? formatDate(viewTarget.milkSupply.date)
                       : "—"}
                   </p>
                 </div>

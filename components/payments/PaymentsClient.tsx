@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { formatDate } from "@/lib/utils/date";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -209,7 +210,7 @@ export default function PaymentsClient({ initialPayments, supplierSummaries: ini
                       advanceDeductions: r.advanceDeductions,
                       paymentMethod: r.paymentMethod ?? "",
                       paymentReference: r.paymentReference ?? "",
-                      paidAt: r.paidAt ? new Date(r.paidAt).toLocaleDateString() : "",
+                      paidAt: r.paidAt ? formatDate(r.paidAt) : "",
                     }))
                   );
                   downloadCSV("supplier-payments.csv", csv);
@@ -237,7 +238,7 @@ export default function PaymentsClient({ initialPayments, supplierSummaries: ini
                   advanceDeductions: r.advanceDeductions,
                   paymentMethod: r.paymentMethod ?? "",
                   paymentReference: r.paymentReference ?? "",
-                  paidAt: r.paidAt ? new Date(r.paidAt).toLocaleDateString() : "",
+                  paidAt: r.paidAt ? formatDate(r.paidAt) : "",
                 }))}
               />
             </div>
@@ -275,7 +276,7 @@ export default function PaymentsClient({ initialPayments, supplierSummaries: ini
                           : "—"}
                       </td>
                       <td className="px-5 py-3.5 text-gray-500 text-xs hidden sm:table-cell">
-                        {record.paidAt ? new Date(record.paidAt).toLocaleDateString() : "—"}
+                        {record.paidAt ? formatDate(record.paidAt) : "—"}
                       </td>
                       <td className="px-5 py-3.5 text-gray-500 text-xs hidden md:table-cell">
                         {record.paymentMethod ?? "—"}

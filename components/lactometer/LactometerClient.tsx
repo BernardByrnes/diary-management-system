@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatDate } from "@/lib/utils/date";
 import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -175,7 +176,7 @@ export default function LactometerClient({
                       className="hover:bg-gray-50/70 transition-colors"
                     >
                       <td className="px-5 py-3.5 text-gray-700">
-                        {new Date(record.date).toLocaleDateString()}
+                        {formatDate(record.date)}
                       </td>
                       <td className="px-5 py-3.5 text-gray-500 font-mono text-xs hidden sm:table-cell">
                         {record.time}

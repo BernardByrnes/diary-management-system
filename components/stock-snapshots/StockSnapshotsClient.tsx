@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { formatDate } from "@/lib/utils/date";
 import {
   Plus,
   Search,
@@ -282,7 +283,7 @@ export default function StockSnapshotsClient({
               {breakdownData.baseSnapshot && (
                 <div className="bg-gray-50 rounded-lg p-3 text-sm">
                   <p className="text-gray-600">
-                    Base (from {new Date(breakdownData.baseSnapshot.date).toLocaleDateString()}):
+                    Base (from {formatDate(breakdownData.baseSnapshot.date)}):
                   </p>
                   <p className="font-semibold text-lg">+{breakdownData.baseSnapshot.physicalLiters.toFixed(1)} L</p>
                 </div>
@@ -295,7 +296,7 @@ export default function StockSnapshotsClient({
                     {breakdownData.supplies.map((s) => (
                       <div key={s.id} className="flex justify-between text-sm">
                         <span className="text-gray-600">
-                          {s.supplier} ({new Date(s.date).toLocaleDateString()})
+                          {s.supplier} ({formatDate(s.date)})
                         </span>
                         <span className="font-medium text-green-700">+{s.liters.toFixed(1)} L</span>
                       </div>
@@ -312,7 +313,7 @@ export default function StockSnapshotsClient({
                     {breakdownData.transfersIn.map((t) => (
                       <div key={t.id} className="flex justify-between text-sm">
                         <span className="text-gray-600">
-                          From {t.sourceBranch} ({new Date(t.date).toLocaleDateString()})
+                          From {t.sourceBranch} ({formatDate(t.date)})
                         </span>
                         <span className="font-medium text-blue-700">+{t.liters.toFixed(1)} L</span>
                       </div>
@@ -329,7 +330,7 @@ export default function StockSnapshotsClient({
                     {breakdownData.transfersOut.map((t) => (
                       <div key={t.id} className="flex justify-between text-sm">
                         <span className="text-gray-600">
-                          To {t.destinationBranch} ({new Date(t.date).toLocaleDateString()})
+                          To {t.destinationBranch} ({formatDate(t.date)})
                         </span>
                         <span className="font-medium text-orange-700">-{t.liters.toFixed(1)} L</span>
                       </div>
@@ -346,7 +347,7 @@ export default function StockSnapshotsClient({
                     {breakdownData.sales.map((s) => (
                       <div key={s.id} className="flex justify-between text-sm">
                         <span className="text-gray-600">
-                          {s.recordedBy} ({new Date(s.date).toLocaleDateString()})
+                          {s.recordedBy} ({formatDate(s.date)})
                         </span>
                         <span className="font-medium text-red-700">-{s.litersSold.toFixed(1)} L</span>
                       </div>
@@ -512,7 +513,7 @@ export default function StockSnapshotsClient({
                     return (
                       <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                          {new Date(r.date).toLocaleDateString()}
+                          {formatDate(r.date)}
                         </td>
                         <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">
                           {r.branch.name}
@@ -658,7 +659,7 @@ export default function StockSnapshotsClient({
         >
           <p className="text-sm text-gray-600 mb-2">
             <strong>{reviewTarget.record.branch.name}</strong> —{" "}
-            {new Date(reviewTarget.record.date).toLocaleDateString()}
+            {formatDate(reviewTarget.record.date)}
           </p>
           <div className="grid grid-cols-3 gap-3 mb-4 text-sm">
             <div className="bg-gray-50 rounded-xl p-3 text-center">
@@ -772,10 +773,6 @@ function EditSnapshotModal({
   const computed = Number(record.computedLiters);
   const previewVariance = (physicalLiters || 0) - computed;
 
-  function fmtDate(iso: string) {
-    return new Date(iso).toLocaleDateString();
-  }
-
   function SectionRow({
     label,
     value,
@@ -830,7 +827,7 @@ function EditSnapshotModal({
       <div className="mb-3 text-sm text-gray-500">
         <span className="font-medium text-gray-700">{record.branch.name}</span>
         {" — "}
-        {new Date(record.date).toLocaleDateString()}
+        {formatDate(record.date)}
       </div>
 
       {/* Computed breakdown */}
@@ -852,7 +849,7 @@ function EditSnapshotModal({
                 <span className="w-5 text-center font-mono font-bold text-xs text-gray-400">=</span>
                 <span className="text-gray-700">
                   {breakdown.baseSnapshot
-                    ? <>Opening balance <span className="text-xs text-gray-400">(snapshot {fmtDate(breakdown.baseSnapshot.date)})</span></>
+                    ? <>Opening balance <span className="text-xs text-gray-400">(snapshot {formatDate(breakdown.baseSnapshot.date)})</span></>
                     : "Opening balance (no prior snapshot — starting from zero)"
                   }
                 </span>
@@ -881,7 +878,7 @@ function EditSnapshotModal({
                 <tbody className="divide-y divide-gray-50">
                   {breakdown.supplies.map((s) => (
                     <tr key={s.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-1.5 text-gray-600">{fmtDate(s.date)}</td>
+                      <td className="px-3 py-1.5 text-gray-600">{formatDate(s.date)}</td>
                       <td className="px-3 py-1.5 text-gray-700">{s.supplier}</td>
                       <td className="px-3 py-1.5 text-gray-400">{s.deliveryReference ?? "—"}</td>
                       <td className="px-3 py-1.5 text-right font-mono text-green-700">+{s.liters.toFixed(1)}</td>
@@ -915,7 +912,7 @@ function EditSnapshotModal({
                 <tbody className="divide-y divide-gray-50">
                   {breakdown.transfersIn.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-1.5 text-gray-600">{fmtDate(t.date)}</td>
+                      <td className="px-3 py-1.5 text-gray-600">{formatDate(t.date)}</td>
                       <td className="px-3 py-1.5 text-gray-700">{t.sourceBranch}</td>
                       <td className="px-3 py-1.5 text-right font-mono text-blue-700">+{t.liters.toFixed(1)}</td>
                     </tr>
@@ -948,7 +945,7 @@ function EditSnapshotModal({
                 <tbody className="divide-y divide-gray-50">
                   {breakdown.sales.map((s) => (
                     <tr key={s.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-1.5 text-gray-600">{fmtDate(s.date)}</td>
+                      <td className="px-3 py-1.5 text-gray-600">{formatDate(s.date)}</td>
                       <td className="px-3 py-1.5 text-gray-700">{s.recordedBy}</td>
                       <td className="px-3 py-1.5 text-right font-mono text-red-600">−{s.litersSold.toFixed(1)}</td>
                     </tr>
@@ -981,7 +978,7 @@ function EditSnapshotModal({
                 <tbody className="divide-y divide-gray-50">
                   {breakdown.transfersOut.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-1.5 text-gray-600">{fmtDate(t.date)}</td>
+                      <td className="px-3 py-1.5 text-gray-600">{formatDate(t.date)}</td>
                       <td className="px-3 py-1.5 text-gray-700">{t.destinationBranch}</td>
                       <td className="px-3 py-1.5 text-right font-mono text-orange-600">−{t.liters.toFixed(1)}</td>
                     </tr>

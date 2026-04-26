@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatDate } from "@/lib/utils/date";
 import { Plus, Search, Pencil, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -169,7 +170,7 @@ filtered.map((r) => (
     className="hover:bg-gray-50/70 transition-colors cursor-pointer"
   >
     <td className="px-5 py-3.5 text-gray-700">
-      {new Date(r.date).toLocaleDateString()}
+      {formatDate(r.date)}
     </td>
                     <td className="px-5 py-3.5 text-gray-600 hidden md:table-cell">
                       {r.branch.name}

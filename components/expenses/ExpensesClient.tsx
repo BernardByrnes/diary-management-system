@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatDate, formatPeriod } from "@/lib/utils/date";
 import { Plus, Search, Pencil, Trash2, Flag, FileText, Receipt, Layers } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -283,7 +284,7 @@ export default function ExpensesClient({
                     { key: "receiptReference" as const, label: "Receipt Ref" },
                   ],
                   filtered.map((r) => ({
-                    date: new Date(r.date).toLocaleDateString(),
+                    date: formatDate(r.date),
                     branch: r.branch.name,
                     category: r.category,
                     description: r.description,
@@ -313,7 +314,7 @@ export default function ExpensesClient({
                 { key: "receiptReference", label: "Receipt Ref" },
               ]}
               rows={filtered.map((r) => ({
-                date: new Date(r.date).toLocaleDateString(),
+                date: formatDate(r.date),
                 branch: r.branch.name,
                 category: r.category,
                 description: r.description,
@@ -352,7 +353,7 @@ export default function ExpensesClient({
           const periodEnd = d <= 15
             ? new Date(y, m, 15).toISOString().slice(0, 10)
             : new Date(y, m + 1, 0).toISOString().slice(0, 10);
-          const periodLabel = `${new Date(periodStart).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${new Date(periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+          const periodLabel = formatPeriod(periodStart, periodEnd);
           const coveredIds = new Set(
             records.filter((r) => r.periodStart?.slice(0, 10) === periodStart).map((r) => r.branch.id)
           );
@@ -417,9 +418,7 @@ export default function ExpensesClient({
                     <div>
                       <p className="text-xs font-semibold text-gray-800">{batch.branchName}</p>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {new Date(batch.periodStart).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                        {" – "}
-                        {new Date(batch.periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        {formatPeriod(batch.periodStart, batch.periodEnd)}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">{batch.count} item{batch.count !== 1 ? "s" : ""} · UGX {batch.total.toLocaleString()}</p>
                     </div>
@@ -494,7 +493,7 @@ export default function ExpensesClient({
               >
                 <td className="px-5 py-3.5 text-gray-700">
                   <div className="flex items-center gap-1.5">
-                    {new Date(r.date).toLocaleDateString()}
+                    {formatDate(r.date)}
                     {r.isFlagged && (
                       <Flag className="w-3 h-3 text-orange-500 fill-orange-500 flex-shrink-0" aria-label="Flagged for review" />
                     )}
@@ -635,7 +634,7 @@ onError={(msg) => addToast("error", msg)}
               <div>
                 <p className="text-xs text-gray-500 mb-1">Date</p>
                 <p className="text-sm font-medium text-gray-900">
-                  {new Date(viewTarget.date).toLocaleDateString()}
+                  {formatDate(viewTarget.date)}
                 </p>
               </div>
               <div>

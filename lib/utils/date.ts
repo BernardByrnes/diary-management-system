@@ -50,6 +50,15 @@ export function formatDateISO(value: Date | string | number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+/** e.g. "14:30" */
+export function formatTime(value: Date | string | number): string {
+  return toDate(value).toLocaleTimeString("en-UG", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 /** "1 Apr – 15 Apr 2026" */
 export function formatPeriod(
   start: Date | string | number,

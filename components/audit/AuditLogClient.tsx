@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { format } from "date-fns";
+import { formatDate, formatTime, formatDateISO } from "@/lib/utils/date";
 import { Search, Filter, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import PdfButton from "@/components/ui/PdfButton";
 
@@ -109,7 +109,7 @@ export default function AuditLogClient({
     const rows = [
       ["Date/Time", "User", "Role", "Action", "Entity Type", "Entity ID", "Changes"],
       ...logs.map((l) => [
-        format(new Date(l.createdAt), "yyyy-MM-dd HH:mm:ss"),
+        `${formatDateISO(l.createdAt)} ${formatTime(l.createdAt)}`,
         l.user.fullName,
         l.user.role,
         l.action,
@@ -123,7 +123,7 @@ export default function AuditLogClient({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `audit-log-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.download = `audit-log-${formatDateISO(new Date())}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -329,9 +329,9 @@ export default function AuditLogClient({
                       }
                     >
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                        {format(new Date(log.createdAt), "dd MMM yyyy")}
+                        {formatDate(log.createdAt)}
                         <span className="ml-1 text-gray-400">
-                          {format(new Date(log.createdAt), "HH:mm")}
+                          {formatTime(log.createdAt)}
                         </span>
                       </td>
                       <td className="px-4 py-3">

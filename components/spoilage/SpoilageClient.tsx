@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatDate } from "@/lib/utils/date";
 import { Plus, Search, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -166,7 +167,7 @@ export default function SpoilageClient({ initialRecords, branchOptions, userRole
                 ) : (
                   filtered.map((r) => (
                     <tr key={r.id} className="hover:bg-gray-50/50">
-                      <td className="px-4 py-3 text-gray-700">{new Date(r.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-gray-700">{formatDate(r.date)}</td>
                       <td className="px-4 py-3 font-medium text-gray-900">{r.branch.name}</td>
                       <td className="px-4 py-3 text-gray-700">{Number(r.liters).toFixed(1)} L</td>
                       <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{r.reason}</td>

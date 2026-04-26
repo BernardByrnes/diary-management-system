@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { formatDateTime } from '@/lib/utils/date'
 import { motion } from 'framer-motion'
 import {
   AlertTriangle,
@@ -112,7 +113,7 @@ export function NotificationsList({
                     <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                   )}
                   <span className="text-xs text-gray-500 ml-auto">
-                    {formatDate(new Date(notification.createdAt))}
+                    {formatDateTime(notification.createdAt)}
                   </span>
                 </div>
 
@@ -137,11 +138,3 @@ export function NotificationsList({
   )
 }
 
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(date)
-}

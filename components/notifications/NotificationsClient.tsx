@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { formatDate } from "@/lib/utils/date";
 import { AlertTriangle, Info, CheckCheck, CheckCircle, Bell, Trash2 } from "lucide-react";
 
 interface NotificationRecord {
@@ -29,7 +30,7 @@ function timeAgo(iso: string): string {
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
-  return new Date(iso).toLocaleDateString();
+  return formatDate(iso);
 }
 
 const URGENCY_ICON_CLASS: Record<NotificationRecord["urgency"], string> = {

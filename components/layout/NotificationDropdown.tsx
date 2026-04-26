@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { formatDate } from '@/lib/utils/date'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
@@ -227,5 +228,5 @@ function formatTimeAgo(date: Date): string {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
   if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`
 
-  return date.toLocaleDateString()
+  return formatDate(date)
 }

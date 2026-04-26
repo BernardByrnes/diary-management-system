@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { formatDate, formatPeriod } from "@/lib/utils/date";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -149,8 +150,8 @@ export default function DistributionsClient({
   const csvRows = filtered.map((r) => ({
     branch: r.branch.name,
     owner: r.owner.fullName,
-    periodStart: new Date(r.periodStart).toLocaleDateString(),
-    periodEnd: new Date(r.periodEnd).toLocaleDateString(),
+    periodStart: formatDate(r.periodStart),
+    periodEnd: formatDate(r.periodEnd),
     revenue: r.totalRevenue,
     milkCosts: r.totalMilkCosts,
     expenses: r.totalExpenses,
@@ -376,7 +377,7 @@ export default function DistributionsClient({
                         <td className="px-5 py-3.5 font-medium text-gray-900">{r.branch.name}</td>
                         <td className="px-5 py-3.5 text-gray-500 text-sm hidden sm:table-cell">{r.owner.fullName}</td>
                         <td className="px-5 py-3.5 text-gray-400 text-xs hidden md:table-cell">
-                          {new Date(r.periodStart).toLocaleDateString()} – {new Date(r.periodEnd).toLocaleDateString()}
+                          {formatPeriod(r.periodStart, r.periodEnd)}
                         </td>
                         <td className="px-5 py-3.5 text-right font-mono text-xs text-gray-600 hidden lg:table-cell">
                           {fmt(safeNum(r.totalRevenue))}
@@ -390,7 +391,7 @@ export default function DistributionsClient({
                           {fmt(safeNum(r.netPayout))}
                         </td>
                         <td className="px-5 py-3.5 text-gray-400 text-xs hidden sm:table-cell">
-                          {r.approvedAt ? new Date(r.approvedAt).toLocaleDateString() : "—"}
+                          {r.approvedAt ? formatDate(r.approvedAt) : "—"}
                         </td>
                       </tr>
                     );

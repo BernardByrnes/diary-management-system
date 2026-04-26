@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { formatPeriod } from "@/lib/utils/date";
 import { Plus, Trash2, Calculator, Pencil } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { EXPENSE_CATEGORIES } from "@/lib/validations/expense";
@@ -179,7 +180,7 @@ export default function BulkExpenseEditModal({
         <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
           <p className="text-xs text-green-700">
             <span className="font-medium">Period:</span>{" "}
-            {new Date(periodStart).toLocaleDateString()} – {new Date(periodEnd).toLocaleDateString()}
+            {formatPeriod(periodStart, periodEnd)}
           </p>
         </div>
 
