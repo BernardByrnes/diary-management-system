@@ -24,11 +24,14 @@ export async function GET(request: Request) {
     );
   }
 
+  const pStart = new Date(periodStart);
+  const pEnd = new Date(periodEnd);
+  // Use gte/lte so expenses created via single-entry form (which use @default(now())) are still included
   const expenses = await prisma.expense.findMany({
     where: {
       branchId,
-      periodStart: new Date(periodStart),
-      periodEnd: new Date(periodEnd),
+      periodStart: { gte: pStart },
+      periodEnd: { lte: pEnd },
     },
     orderBy: { createdAt: "asc" },
     include: {
