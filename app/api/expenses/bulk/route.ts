@@ -78,54 +78,60 @@ export async function POST(request: Request) {
   const periodStartDate = new Date(periodStart);
   const periodEndDate = new Date(periodEnd);
 
-  const createdExpenses = await prisma.$transaction(async (tx) => {
-    const results = [];
+  const createdExpenses = await prisma.$transaction(
+    async (tx) => {
+      const results = [];
 
-    for (const expense of expenses) {
-      const created = await tx.expense.create({
-        data: {
-          date: periodEndDate,
-          periodStart: periodStartDate,
-          periodEnd: periodEndDate,
-          branchId,
-          category: expense.category,
-          description: expense.description,
-          amount: expense.amount,
-          paymentMethod,
-          receiptReference: receiptReference ?? null,
-          recordedById: user.id,
-        },
-        include: {
-          branch: { select: { id: true, name: true } },
-          recordedBy: { select: { id: true, fullName: true } },
-        },
-      });
-      results.push(created);
-    }
+      for (const expense of expenses) {
+        const created = await tx.expense.create({
+          data: {
+            date: periodEndDate,
+            periodStart: periodStartDate,
+            periodEnd: periodEndDate,
+            branchId,
+            category: expense.category,
+            description: expense.description,
+            amount: expense.amount,
+            paymentMethod,
+            receiptReference: receiptReference ?? null,
+            recordedById: user.id,
+          },
+          include: {
+            branch: { select: { id: true, name: true } },
+            recordedBy: { select: { id: true, fullName: true } },
+          },
+        });
+        results.push(created);
+      }
 
-    // When recording rent, update the branch's rentPaidUntil
-    if (hasRent && coverageMonths) {
-      const paidUntil = new Date(periodEnd);
-      paidUntil.setMonth(paidUntil.getMonth() + coverageMonths);
-      await tx.branch.update({
-        where: { id: branchId },
-        data: { rentPaidUntil: paidUntil },
-      });
-    }
+      // When recording rent, update the branch's rentPaidUntil
+      if (hasRent && coverageMonths) {
+        const paidUntil = new Date(periodEnd);
+        paidUntil.setMonth(paidUntil.getMonth() + coverageMonths);
+        await tx.branch.update({
+          where: { id: branchId },
+          data: { rentPaidUntil: paidUntil },
+        });
+      }
 
-    return results;
-  });
+      return results;
+    },
+    // Neon pooler default is 5 s — bulk inserts of many rows need more headroom
+    { timeout: 30_000, maxWait: 10_000 }
+  );
 
-  // Audit log for each created expense
-  for (const expense of createdExpenses) {
-    await createAuditLog({
-      action: "CREATE",
-      entityType: "Expense",
-      entityId: expense.id,
-      userId: user.id,
-      changes: { bulk: true, periodStart, periodEnd, branchId },
-    });
-  }
+  // Audit log for each created expense — run in parallel to avoid sequential latency
+  await Promise.all(
+    createdExpenses.map((expense) =>
+      createAuditLog({
+        action: "CREATE",
+        entityType: "Expense",
+        entityId: expense.id,
+        userId: user.id,
+        changes: { bulk: true, periodStart, periodEnd, branchId },
+      })
+    )
+  );
 
   return NextResponse.json(createdExpenses, { status: 201 });
 }
@@ -149,43 +155,56 @@ export async function PATCH(request: Request) {
 
   const { expenses, periodStart, periodEnd } = parsed.data;
 
-  const updatedExpenses = await prisma.$transaction(async (tx) => {
-    const results = [];
+  const updatedExpenses = await prisma.$transaction(
+    async (tx) => {
+      const results = [];
 
-    for (const line of expenses) {
-      if (!line.id) continue;
+      for (const line of expenses) {
+        if (!line.id) continue;
 
-      // Verify expense exists and user has access
-      const existing = await tx.expense.findUnique({ where: { id: line.id } });
-      if (!existing) continue;
+        // Verify expense exists and user has access
+        const existing = await tx.expense.findUnique({ where: { id: line.id } });
+        if (!existing) continue;
 
-      const updated = await tx.expense.update({
-        where: { id: line.id },
-        data: {
-          category: line.category,
-          description: line.description,
-          amount: line.amount,
-          ...(periodStart ? { periodStart: new Date(periodStart) } : {}),
-          ...(periodEnd ? { periodEnd: new Date(periodEnd) } : {}),
-        },
-        include: {
-          branch: { select: { id: true, name: true } },
-          recordedBy: { select: { id: true, fullName: true } },
-        },
-      });
-      results.push(updated);
+        const updated = await tx.expense.update({
+          where: { id: line.id },
+          data: {
+            category: line.category,
+            description: line.description,
+            amount: line.amount,
+            ...(periodStart ? { periodStart: new Date(periodStart) } : {}),
+            ...(periodEnd ? { periodEnd: new Date(periodEnd) } : {}),
+          },
+          include: {
+            branch: { select: { id: true, name: true } },
+            recordedBy: { select: { id: true, fullName: true } },
+          },
+        });
+        results.push(updated);
+      }
 
-      await createAuditLog({
+      return results;
+    },
+    { timeout: 30_000, maxWait: 10_000 }
+  );
+
+  // Audit logs in parallel after the transaction commits
+  await Promise.all(
+    updatedExpenses.map((updated) =>
+      createAuditLog({
         action: "UPDATE",
         entityType: "Expense",
-        entityId: line.id,
+        entityId: updated.id,
         userId: user.id,
-        changes: { bulk: true, category: line.category, description: line.description, amount: line.amount },
-      });
-    }
-
-    return results;
-  });
+        changes: {
+          bulk: true,
+          category: updated.category,
+          description: updated.description,
+          amount: updated.amount,
+        },
+      })
+    )
+  );
 
   return NextResponse.json(updatedExpenses);
 }
@@ -211,17 +230,26 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "No IDs provided" }, { status: 400 });
   }
 
-  await prisma.$transaction(async (tx) => {
-    for (const id of ids) {
-      await tx.expense.delete({ where: { id } });
-      await createAuditLog({
+  await prisma.$transaction(
+    async (tx) => {
+      for (const id of ids) {
+        await tx.expense.delete({ where: { id } });
+      }
+    },
+    { timeout: 30_000, maxWait: 10_000 }
+  );
+
+  // Audit logs in parallel after deletes commit
+  await Promise.all(
+    ids.map((id) =>
+      createAuditLog({
         action: "DELETE",
         entityType: "Expense",
         entityId: id,
         userId: user.id,
-      });
-    }
-  });
+      })
+    )
+  );
 
   return NextResponse.json({ success: true, deleted: ids.length });
 }
