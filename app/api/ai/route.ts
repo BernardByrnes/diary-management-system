@@ -209,6 +209,12 @@ const [
     return acc;
   }, {});
 
+  const expensesByBranch = recentExpenses.reduce<Record<string, number>>((acc, r) => {
+    const name = r.branch.name;
+    acc[name] = (acc[name] ?? 0) + Number(r.amount);
+    return acc;
+  }, {});
+
   const today2 = new Date();
   today2.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today2);
@@ -262,7 +268,7 @@ PROFIT (${periodLabel}):
 - Other expenses: UGX ${totalExpensesMonth.toLocaleString()}
 - Total costs: UGX ${totalCostMonth.toLocaleString()}
 - Net profit: UGX ${(totalRevenueMonth - totalCostMonth).toLocaleString()}
-- Per branch net profit: ${Object.entries(revenueByBranch).map(([k, v]) => `${k}: UGX ${(v - (milkCostByBranch[k] ?? 0) - (Object.entries(expenseByCategory).reduce((s, [, ev]) => s + ev, 0) / Math.max(Object.keys(revenueByBranch).length, 1))).toLocaleString()}`).join(", ")}
+- Per branch net profit: ${Object.entries(revenueByBranch).map(([k, v]) => `${k}: UGX ${(v - (milkCostByBranch[k] ?? 0) - (expensesByBranch[k] ?? 0)).toLocaleString()}`).join(", ")}
 
 ${pendingTransfers.length > 0 ? `PENDING TRANSFERS: ${pendingTransfers.length} transfer(s) awaiting approval` : ""}
 
