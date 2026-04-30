@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   PackageSearch,
   AlertTriangle,
+  FileUp,
   type LucideIcon,
 } from "lucide-react";
 
@@ -60,6 +61,7 @@ const navSections: Record<Role, NavSection[]> = {
         { href: "/dashboard/spoilage", label: "Spoilage", icon: AlertTriangle },
         { href: "/dashboard/banking", label: "Banking", icon: Landmark },
         { href: "/dashboard/stock-snapshots", label: "Stock Counts", icon: PackageSearch },
+        { href: "/dashboard/import", label: "CSV Import", icon: FileUp },
       ],
     },
     {
