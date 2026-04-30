@@ -7,7 +7,12 @@ import AuditLogClient from "@/components/audit/AuditLogClient";
 
 export default async function AuditLogPage() {
   const session = await auth();
-  const user = session!.user as { id: string; role: string };
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; role: string };
 
   if (user.role !== "EXECUTIVE_DIRECTOR") {
     redirect("/dashboard");

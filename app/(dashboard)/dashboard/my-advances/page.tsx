@@ -5,7 +5,12 @@ import { Wallet } from "lucide-react";
 
 export default async function MyAdvancesPage() {
   const session = await auth();
-  const user = session!.user as { id: string; role: string };
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; role: string };
 
   if (user.role !== "OWNER") redirect("/dashboard");
 

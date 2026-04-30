@@ -6,7 +6,12 @@ import SpoilageClient from "@/components/spoilage/SpoilageClient";
 
 export default async function SpoilagePage() {
   const session = await auth();
-  const user = session!.user as { id: string; role: string };
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; role: string };
 
   if (user.role === "OWNER") redirect("/dashboard");
 

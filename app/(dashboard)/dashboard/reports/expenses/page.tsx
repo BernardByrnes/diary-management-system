@@ -14,7 +14,12 @@ export default async function ExpenseReportPage({
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const session = await auth();
-  const user = session!.user as { id: string; role: string };
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; role: string };
 
   if (user.role === "MANAGER") redirect("/dashboard");
 

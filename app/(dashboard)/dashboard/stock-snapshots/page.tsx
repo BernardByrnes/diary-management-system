@@ -7,7 +7,12 @@ import { getBranchAvailableLiters } from "@/lib/utils/stock";
 
 export default async function StockSnapshotsPage() {
   const session = await auth();
-  const user = session!.user as { id: string; role: string };
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; role: string };
 
   const isED = user.role === "EXECUTIVE_DIRECTOR";
   const isManager = user.role === "MANAGER";

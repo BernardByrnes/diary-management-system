@@ -1,5 +1,6 @@
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/auth";
-import { prisma } from "@/lib/db/prisma";
+  import { prisma } from "@/lib/db/prisma";
 import { checkAndCreateNotifications } from "@/lib/utils/notifications";
 import type { Role } from "@prisma/client";
 import { Suspense } from "react";
@@ -42,7 +43,12 @@ interface StatDef {
 
 export default async function DashboardPage() {
   const session = await auth();
-  const user = session!.user as { id: string; fullName: string; role: Role };
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; fullName: string; role: Role };
 
   await checkAndCreateNotifications(user.id);
 

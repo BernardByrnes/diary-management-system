@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/auth";
 import { prisma } from "@/lib/db/prisma";
 import { Bell, CheckCircle2 } from "lucide-react";
@@ -6,7 +7,12 @@ import { checkAndCreateNotifications } from "@/lib/utils/notifications";
 
 export default async function NotificationsPage() {
   const session = await auth();
-  const user = session!.user as { id: string; role: string };
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; role: string };
 
   // Run time-based checks
   await checkAndCreateNotifications(user.id);

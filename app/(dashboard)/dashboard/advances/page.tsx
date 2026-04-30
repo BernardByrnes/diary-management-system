@@ -6,7 +6,12 @@ import AdvancesClient from "@/components/advances/AdvancesClient";
 
 export default async function AdvancesPage() {
   const session = await auth();
-  const user = session!.user as { id: string; role: string };
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; role: string };
 
   if (user.role !== "EXECUTIVE_DIRECTOR") {
     redirect("/dashboard");

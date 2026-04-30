@@ -6,7 +6,12 @@ import TransfersClient from "@/components/transfers/TransfersClient";
 
 export default async function TransfersPage() {
   const session = await auth();
-  const user = session!.user as { id: string; role: string };
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; role: string };
 
   if (user.role === "OWNER") {
     redirect("/dashboard");

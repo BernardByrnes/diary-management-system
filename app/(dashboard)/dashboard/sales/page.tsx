@@ -7,7 +7,11 @@ import { getFifoStateForBranch } from "@/lib/utils/fifo";
 
 export default async function SalesPage() {
   const session = await auth();
-  const user = session!.user as { id: string; role: string };
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; role: string };
 
   if (user.role === "OWNER") {
     redirect("/dashboard");
@@ -53,10 +57,16 @@ export default async function SalesPage() {
       orderBy: { date: "desc" },
       take: 200,
     }),
-    Promise.all(branches.map(async (b) => {
-      const fifo = await getFifoStateForBranch(b.id);
-      return { branchId: b.id, retailPricePerLiter: fifo.retailPricePerLiter };
-    })),
+    Promise.all(
+      branches.map(async (b) => {
+        try {
+          const fifo = await getFifoStateForBranch(b.id);
+          return { branchId: b.id, retailPricePerLiter: fifo.retailPricePerLiter };
+        } catch {
+          return { branchId: b.id, retailPricePerLiter: null };
+        }
+      }),
+    ),
   ]);
 
   const serializedRecords = sales.map((s) => ({

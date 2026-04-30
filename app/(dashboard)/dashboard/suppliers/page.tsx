@@ -6,7 +6,12 @@ import SuppliersClient from "@/components/suppliers/SuppliersClient";
 
 export default async function SuppliersPage() {
   const session = await auth();
-  const user = session!.user as { id: string; role: string };
+
+  if (!session?.user) {
+    redirect("/auth/login");
+  }
+
+  const user = session.user as { id: string; role: string };
 
   if (!["EXECUTIVE_DIRECTOR", "MANAGER"].includes(user.role)) {
     redirect("/dashboard");
