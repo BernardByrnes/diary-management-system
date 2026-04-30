@@ -74,7 +74,7 @@ async function insertExpenses(
 async function insertMilk(
   rows: ParsedRow[],
   branchByName: Record<string, string>,
-  supplierByName: Record<string, string>,
+  defaultSupplierId: string,
   userId: string
 ): Promise<number> {
   let inserted = 0;
@@ -82,19 +82,20 @@ async function insertMilk(
     for (const row of rows) {
       if (row._errors.length > 0) continue;
       const branchId = branchByName[(row.branch_name as string).toLowerCase().trim()];
-      const supplierId = supplierByName[(row.supplier_name as string).toLowerCase().trim()];
-      if (!branchId || !supplierId) continue;
+      if (!branchId) continue;
       const liters = Number(row.liters);
       const costPerLiter = Number(row.cost_per_liter);
+      // Use period_end as the representative date if date is missing/is a period label
+      const dateStr = (row.date as string) || (row.period_end as string);
       await tx.milkSupply.create({
         data: {
-          date: new Date(row.date as string),
+          date: new Date(dateStr),
           branchId,
-          supplierId,
+          supplierId: defaultSupplierId,
           liters,
           costPerLiter,
           totalCost: liters * costPerLiter,
-          retailPricePerLiter: Number(row.retail_price_per_liter ?? row.cost_per_liter),
+          retailPricePerLiter: row.retail_price_per_liter ? Number(row.retail_price_per_liter) : Number(row.cost_per_liter),
           deliveryReference: (row.delivery_reference as string) || null,
           recordedById: userId,
         },
@@ -121,13 +122,17 @@ async function insertSales(
       if (!branchId) continue;
       const litersSold = Number(row.liters_sold);
       const pricePerLiter = Number(row.price_per_liter);
+      // Derive revenue: prefer explicit revenue column, else calculate
+      const revenue = row.revenue ? Number(row.revenue) : litersSold * pricePerLiter;
+      // Use period_end as representative date if date missing
+      const dateStr = (row.date as string) || (row.period_end as string);
       await tx.sale.create({
         data: {
-          date: new Date(row.date as string),
+          date: new Date(dateStr),
           branchId,
           litersSold,
-          pricePerLiter,
-          revenue: litersSold * pricePerLiter,
+          pricePerLiter: pricePerLiter || (litersSold > 0 ? revenue / litersSold : 0),
+          revenue,
           recordedById: userId,
         },
       });
@@ -174,17 +179,20 @@ export async function POST(req: NextRequest) {
   const branches = await prisma.branch.findMany({ where: { isActive: true }, select: { id: true, name: true } });
   const branchByName = Object.fromEntries(branches.map((b) => [b.name.toLowerCase().trim(), b.id]));
 
+  // Fetch the single supplier — auto-filled on all milk import rows (no supplier column needed)
+  const defaultSupplier = await prisma.supplier.findFirst({ select: { id: true, name: true } });
+  if (!defaultSupplier) {
+    return NextResponse.json({ error: "No supplier found in the database. Please add a supplier first." }, { status: 400 });
+  }
+
   // ── CONFIRM ──────────────────────────────────────────────────────────────
   if (confirm) {
     if (type === "auto") {
       if (!confirmedGroups) return NextResponse.json({ error: "No groups provided." }, { status: 400 });
 
-      const suppliers = await prisma.supplier.findMany({ select: { id: true, name: true } });
-      const supplierByName = Object.fromEntries(suppliers.map((s) => [s.name.toLowerCase().trim(), s.id]));
-
       const [expensesInserted, milkInserted, salesInserted] = await Promise.all([
         confirmedGroups.expenses?.length ? insertExpenses(confirmedGroups.expenses, branchByName, user.id) : Promise.resolve(0),
-        confirmedGroups.milk?.length ? insertMilk(confirmedGroups.milk, branchByName, supplierByName, user.id) : Promise.resolve(0),
+        confirmedGroups.milk?.length ? insertMilk(confirmedGroups.milk, branchByName, defaultSupplier.id, user.id) : Promise.resolve(0),
         confirmedGroups.sales?.length ? insertSales(confirmedGroups.sales, branchByName, user.id) : Promise.resolve(0),
       ]);
 
@@ -201,9 +209,7 @@ export async function POST(req: NextRequest) {
       inserted = await insertExpenses(validRows, branchByName, user.id);
     }
     if (type === "milk") {
-      const suppliers = await prisma.supplier.findMany({ select: { id: true, name: true } });
-      const supplierByName = Object.fromEntries(suppliers.map((s) => [s.name.toLowerCase().trim(), s.id]));
-      inserted = await insertMilk(validRows, branchByName, supplierByName, user.id);
+      inserted = await insertMilk(validRows, branchByName, defaultSupplier.id, user.id);
     }
     if (type === "sales") {
       inserted = await insertSales(validRows, branchByName, user.id);
@@ -217,22 +223,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No CSV content provided." }, { status: 400 });
   }
 
-  const suppliers = await prisma.supplier.findMany({ select: { id: true, name: true } });
   const branchNames = branches.map((b) => b.name).join(", ");
-  const supplierNames = suppliers.map((s) => s.name).join(", ");
 
   const csvLines = csv.trim().split("\n").slice(0, 301);
   const truncated = csvLines.length > 300;
   const csvSample = csvLines.join("\n");
 
   const schemaHints = {
-    expenses: `Expenses — required: branch_name (one of: ${branchNames}), date (YYYY-MM-DD), category (SALARIES/MEALS/RENT/TRANSPORT/UTILITIES/MAINTENANCE/MISCELLANEOUS), description, amount (UGX). Optional: payment_method (CASH/BANK), receipt_reference, period_start, period_end.`,
-    milk: `Milk deliveries — required: branch_name (one of: ${branchNames}), supplier_name (one of: ${supplierNames}), date, liters, cost_per_liter (UGX). Optional: retail_price_per_liter, delivery_reference.`,
-    sales: `Sales — required: branch_name (one of: ${branchNames}), date, liters_sold, price_per_liter (UGX).`,
+    expenses: `Expenses — required: branch_name (one of: ${branchNames}), date OR period_end (YYYY-MM-DD), category (SALARIES/MEALS/RENT/TRANSPORT/UTILITIES/MAINTENANCE/MISCELLANEOUS), description, amount (UGX). Optional: payment_method (CASH/BANK), receipt_reference, period_start, period_end.`,
+    milk: `Milk deliveries — required: branch_name (one of: ${branchNames}), liters, cost_per_liter (UGX). Optional: date or period_end (YYYY-MM-DD; use period_end if only a period range is given), retail_price_per_liter, delivery_reference. NOTE: supplier is auto-filled — do NOT require a supplier_name column.`,
+    sales: `Sales — required: branch_name (one of: ${branchNames}), liters_sold. Optional: date or period_end (YYYY-MM-DD), price_per_liter (UGX), revenue (UGX; use if price_per_liter not given).`,
   };
 
   if (type === "auto") {
-    const systemPrompt = `You are a CSV parsing assistant for a dairy cooperative. This CSV may contain a mix of expenses, milk deliveries, and sales records.
+    const systemPrompt = `You are a CSV parsing assistant for a dairy cooperative. This CSV may contain a mix of expenses, milk deliveries, and sales — often as a bimonthly period summary per branch (not necessarily daily rows).
 
 Classify each row by data type and map its columns to the correct schema fields:
 
@@ -241,26 +245,28 @@ ${schemaHints.milk}
 ${schemaHints.sales}
 
 Rules:
-- Identify each row's type from context clues (presence of supplier_name suggests milk, presence of category/description suggests expense, liters_sold/price_per_liter suggests sale).
-- Map column headers to field names even if headers differ (e.g. "Qty" → liters, "Branch" → branch_name).
-- Normalise dates to YYYY-MM-DD. Strip currency symbols from numbers.
-- Match branch/supplier names case-insensitively. If ambiguous, use closest match and note in _errors.
-- Each row must have a _errors array. Add missing/invalid required fields to _errors.
-- Do NOT invent data.
+- Identify each row's type from context clues: presence of category/description → expense; presence of liters + cost_per_liter → milk; presence of liters_sold or revenue without cost → sale.
+- Map column headers to field names even if they differ (e.g. "Qty Litres" → liters, "UGX Amount" → amount, "Branch" → branch_name, "Period" → period_end).
+- Normalise dates to YYYY-MM-DD. If only a period range is given (e.g. "Apr 1-15"), set period_start to the first date and period_end / date to the last date.
+- Strip currency symbols and commas from numbers (e.g. "300,000" → 300000).
+- Match branch names case-insensitively to: ${branchNames}. If a branch name is ambiguous, use the closest match and add a note to _errors.
+- Do NOT require or invent a supplier_name for milk rows — supplier is auto-filled by the system.
+- Each row MUST have a _errors array. Only add to _errors for genuinely missing/unparseable required fields.
+- If a row is a section header, subtotal, or blank — skip it (do not include it in any group).
 
 Return ONLY valid JSON (no markdown, no explanation):
 {
   "expenses": {
     "column_mapping": { "original header": "mapped field" },
-    "rows": [{ "_row": 1, "_errors": [], "branch_name": "...", "date": "...", "category": "...", "description": "...", "amount": 0 }]
+    "rows": [{ "_row": 1, "_errors": [], "branch_name": "...", "date": "...", "period_start": "...", "period_end": "...", "category": "...", "description": "...", "amount": 0, "payment_method": "CASH" }]
   },
   "milk": {
     "column_mapping": {},
-    "rows": [{ "_row": 2, "_errors": [], "branch_name": "...", "supplier_name": "...", "date": "...", "liters": 0, "cost_per_liter": 0 }]
+    "rows": [{ "_row": 2, "_errors": [], "branch_name": "...", "date": "...", "period_end": "...", "liters": 0, "cost_per_liter": 0 }]
   },
   "sales": {
     "column_mapping": {},
-    "rows": [{ "_row": 3, "_errors": [], "branch_name": "...", "date": "...", "liters_sold": 0, "price_per_liter": 0 }]
+    "rows": [{ "_row": 3, "_errors": [], "branch_name": "...", "date": "...", "period_end": "...", "liters_sold": 0, "price_per_liter": 0, "revenue": 0 }]
   }
 }
 
@@ -325,21 +331,24 @@ If a type has no rows in the CSV, return an empty rows array for it.`;
     sales: schemaHints.sales,
   };
 
-  const systemPrompt = `You are a CSV parsing assistant for a dairy cooperative. Parse the uploaded CSV and map its columns to the required schema fields.
+  const systemPrompt = `You are a CSV parsing assistant for a dairy cooperative. Parse the uploaded CSV and map its columns to the required schema fields. The data may be a bimonthly period summary per branch.
 
 ${singleSchemaHints[type as Exclude<ImportType, "auto">]}
 
 Rules:
-- Map column headers to field names even if headers differ.
-- Normalise dates to YYYY-MM-DD. Strip currency symbols from numbers.
-- Match branch/supplier names case-insensitively.
-- Each row must have a _errors array listing missing/invalid required fields.
+- Map column headers to field names even if they differ (e.g. "Branch" → branch_name, "UGX Amount" → amount, "Qty Litres" → liters).
+- Normalise dates to YYYY-MM-DD. If only a period range is given (e.g. "Apr 1-15"), set period_start to the first date and period_end / date to the last date.
+- Strip currency symbols and commas from numbers.
+- Match branch names case-insensitively to: ${branchNames}.
+- Do NOT require supplier_name for milk rows — supplier is auto-filled.
+- Each row must have a _errors array listing only genuinely missing/unparseable required fields.
+- Skip section headers, subtotals, and blank rows entirely.
 - Do NOT invent data.
 
 Return ONLY valid JSON (no markdown):
 {
   "column_mapping": { "original header": "mapped field name" },
-  "rows": [{ "_row": 1, "_errors": [], "branch_name": "...", "date": "..." }]
+  "rows": [{ "_row": 1, "_errors": [], "branch_name": "...", "date": "...", "period_start": "...", "period_end": "..." }]
 }`;
 
   const aiResponse = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {

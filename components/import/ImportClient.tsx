@@ -20,17 +20,17 @@ const TEMPLATES: Record<Exclude<ImportType, "auto">, { filename: string; headers
   expenses: {
     filename: "expenses_template.csv",
     headers: "branch_name,date,category,description,amount,payment_method,receipt_reference,period_start,period_end",
-    example: "Kyabugimbi,2026-04-30,SALARIES,Staff salaries,500000,CASH,,2026-04-01,2026-04-30",
+    example: "Kyabugimbi,2026-04-15,MEALS,Staff lunch,300000,CASH,,2026-04-01,2026-04-15",
   },
   milk: {
     filename: "milk_template.csv",
-    headers: "branch_name,supplier_name,date,liters,cost_per_liter,retail_price_per_liter,delivery_reference",
-    example: "Kyabugimbi,John Doe,2026-04-30,100,1200,1500,DEL-001",
+    headers: "branch_name,date,liters,cost_per_liter,retail_price_per_liter,period_start,period_end",
+    example: "Kyabugimbi,2026-04-15,1200,1200,1500,2026-04-01,2026-04-15",
   },
   sales: {
     filename: "sales_template.csv",
-    headers: "branch_name,date,liters_sold,price_per_liter",
-    example: "Kyabugimbi,2026-04-30,80,1500",
+    headers: "branch_name,date,liters_sold,price_per_liter,revenue,period_start,period_end",
+    example: "Kyabugimbi,2026-04-15,900,1500,1350000,2026-04-01,2026-04-15",
   },
 };
 
@@ -55,9 +55,9 @@ const TYPE_LABELS: Record<ImportType, string> = {
 };
 
 const COLUMN_DEFS: Record<Exclude<ImportType, "auto">, string[]> = {
-  expenses: ["branch_name", "date", "category", "description", "amount", "payment_method"],
-  milk: ["branch_name", "supplier_name", "date", "liters", "cost_per_liter"],
-  sales: ["branch_name", "date", "liters_sold", "price_per_liter"],
+  expenses: ["branch_name", "date", "period_start", "period_end", "category", "description", "amount", "payment_method"],
+  milk: ["branch_name", "date", "period_end", "liters", "cost_per_liter"],
+  sales: ["branch_name", "date", "period_end", "liters_sold", "price_per_liter", "revenue"],
 };
 
 // ── Subcomponents ─────────────────────────────────────────────────────────────
@@ -291,7 +291,7 @@ export default function ImportClient() {
           <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-xl">
             <Sparkles className="w-4 h-4 text-violet-600 shrink-0" />
             <span className="text-sm text-violet-700">
-              Upload any spreadsheet — the AI will classify each row as an expense, milk delivery, or sale automatically.
+              Upload any spreadsheet — expenses, milk totals, and sales (daily or bimonthly summary per branch). Supplier is auto-filled. AI handles flexible column names.
             </span>
           </div>
         ) : (
