@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const branch = await prisma.branch.findUnique({ where: { id: branchId } });
   if (!branch) return NextResponse.json({ error: "Branch not found" }, { status: 404 });
 
-  const supplier = await prisma.supplier.findFirst({ select: { id: true } });
+  const supplier = await prisma.supplier.findFirst({ select: { id: true }, orderBy: { createdAt: "asc" } });
   if (!supplier) return NextResponse.json({ error: "No supplier found. Add a supplier first." }, { status: 400 });
 
   const created = await prisma.$transaction(async (tx) => {

@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
   const branchByName = Object.fromEntries(branches.map((b) => [b.name.toLowerCase().trim(), b.id]));
 
   // Fetch the single supplier — auto-filled on all milk import rows (no supplier column needed)
-  const defaultSupplier = await prisma.supplier.findFirst({ select: { id: true, name: true } });
+  const defaultSupplier = await prisma.supplier.findFirst({ select: { id: true, name: true }, orderBy: { createdAt: "asc" } });
   if (!defaultSupplier) {
     return NextResponse.json({ error: "No supplier found in the database. Please add a supplier first." }, { status: 400 });
   }
