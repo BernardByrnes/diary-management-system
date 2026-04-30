@@ -51,7 +51,7 @@ export default async function ReconciliationPage({
     branchFilter = { branchId: { in: owned.map((b) => b.id) } };
   }
 
-  const [deposits, sales, cashExpenses] = await Promise.all([
+  const [deposits, sales, cashExpenses, allBranches] = await Promise.all([
     prisma.bankDeposit.findMany({
       where: { date: dateFilter, ...branchFilter },
       include: { branch: { select: { name: true } } },
@@ -65,13 +65,14 @@ export default async function ReconciliationPage({
       where: { date: dateFilter, paymentMethod: "CASH", ...branchFilter },
       select: { date: true, branchId: true, amount: true },
     }),
+    // Fetch all branch names directly so rows without deposits still get a name
+    prisma.branch.findMany({
+      where: branchFilter.branchId ? { id: { in: branchFilter.branchId.in } } : {},
+      select: { id: true, name: true },
+    }),
   ]);
 
-  // Build a map of branchId to branch name from deposits
-  const branchNames = new Map<string, string>();
-  for (const d of deposits) {
-    branchNames.set(d.branchId, d.branch.name);
-  }
+  const branchNames = new Map<string, string>(allBranches.map((b) => [b.id, b.name]));
 
   // Map keyed by "branchId|dateStr"
   type DayEntry = {
@@ -139,9 +140,9 @@ export default async function ReconciliationPage({
   }
 
   // Sort by date descending
-  const rows = Array.from(dayMap.values()).sort((a, b) =>
-    b.dateStr.localeCompare(a.dateStr)
-  );
+  const rows = Array.from(dayMap.values())
+    .map((r) => ({ ...r, expectedDeposit: Math.max(0, r.expectedDeposit) }))
+    .sort((a, b) => b.dateStr.localeCompare(a.dateStr));
 
   // Summary calculations
   const totalExpected = rows.reduce((sum, r) => sum + r.expectedDeposit, 0);

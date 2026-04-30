@@ -182,8 +182,8 @@ export async function loadBranchSummaryReportData(
       isActive: branch.isActive,
     },
     owner: {
-      fullName: branch.owner.fullName,
-      phone: branch.owner.phone,
+      fullName: branch.owner?.fullName ?? "No owner assigned",
+      phone: branch.owner?.phone ?? null,
     },
     managers: branch.managers.map((m) => ({ fullName: m.manager.fullName })),
     financials: {
