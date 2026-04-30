@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/auth";
+import { prisma } from "@/lib/db/prisma";
 import { Upload } from "lucide-react";
 import ImportClient from "@/components/import/ImportClient";
 
@@ -10,6 +11,12 @@ export default async function ImportPage() {
   if (user.role !== "EXECUTIVE_DIRECTOR") {
     redirect("/dashboard");
   }
+
+  const branches = await prisma.branch.findMany({
+    where: { isActive: true },
+    select: { name: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="space-y-6">
@@ -25,7 +32,7 @@ export default async function ImportPage() {
         </div>
       </div>
 
-      <ImportClient />
+      <ImportClient branchNames={branches.map((b) => b.name)} />
     </div>
   );
 }
