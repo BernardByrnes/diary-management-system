@@ -351,7 +351,7 @@ Once all mandatory fields are confirmed, summarise what you are about to record 
       Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "minimaxai/minimax-m2.5",
+      model: "minimaxai/minimax-m2.7",
       messages: [{ role: "system", content: systemPrompt }, ...messages],
       temperature: 0.3,
       max_tokens: 1024,
