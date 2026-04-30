@@ -338,6 +338,104 @@ If the date is missing but context implies today, assume today's date and mentio
 
 Once all mandatory fields are confirmed, summarise what you are about to record and ask the user to confirm before proceeding.`;
 
+  // --- Tool definitions (ED only) ---
+  const tools = isED ? [
+    {
+      type: "function",
+      function: {
+        name: "add_expense",
+        description: "Record a new expense for a branch. Use this when the user asks to add, record, or create an expense.",
+        parameters: {
+          type: "object",
+          properties: {
+            branch_name: { type: "string", description: "Name of the branch" },
+            amount: { type: "number", description: "Amount in UGX" },
+            category: { type: "string", enum: ["SALARIES", "MEALS", "RENT", "TRANSPORT", "UTILITIES", "MAINTENANCE", "MISCELLANEOUS"] },
+            date: { type: "string", description: "Date in YYYY-MM-DD format" },
+            description: { type: "string", description: "Brief description of the expense" },
+            payment_method: { type: "string", enum: ["CASH", "BANK"], description: "Defaults to CASH" },
+            period_start: { type: "string", description: "Period start date YYYY-MM-DD (optional, defaults to date)" },
+            period_end: { type: "string", description: "Period end date YYYY-MM-DD (optional, defaults to date)" },
+          },
+          required: ["branch_name", "amount", "category", "date", "description"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "record_milk_delivery",
+        description: "Record a milk delivery from a supplier to a branch.",
+        parameters: {
+          type: "object",
+          properties: {
+            branch_name: { type: "string" },
+            supplier_name: { type: "string" },
+            liters: { type: "number" },
+            cost_per_liter: { type: "number", description: "UGX per liter" },
+            date: { type: "string", description: "YYYY-MM-DD" },
+            retail_price_per_liter: { type: "number", description: "Optional retail price; defaults to cost_per_liter" },
+            delivery_reference: { type: "string", description: "Optional reference number" },
+          },
+          required: ["branch_name", "supplier_name", "liters", "cost_per_liter", "date"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "record_sale",
+        description: "Record a milk sale for a branch.",
+        parameters: {
+          type: "object",
+          properties: {
+            branch_name: { type: "string" },
+            liters_sold: { type: "number" },
+            price_per_liter: { type: "number", description: "UGX per liter" },
+            date: { type: "string", description: "YYYY-MM-DD" },
+          },
+          required: ["branch_name", "liters_sold", "price_per_liter", "date"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "record_bank_deposit",
+        description: "Record a bank deposit for a branch.",
+        parameters: {
+          type: "object",
+          properties: {
+            branch_name: { type: "string" },
+            amount: { type: "number", description: "UGX" },
+            bank_name: { type: "string" },
+            reference_number: { type: "string" },
+            date: { type: "string", description: "YYYY-MM-DD" },
+          },
+          required: ["branch_name", "amount", "bank_name", "reference_number", "date"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "record_advance",
+        description: "Record an advance payment to a supplier or branch.",
+        parameters: {
+          type: "object",
+          properties: {
+            amount: { type: "number", description: "UGX" },
+            purpose: { type: "string" },
+            date: { type: "string", description: "YYYY-MM-DD" },
+            supplier_name: { type: "string", description: "Supplier name if advance is for a supplier" },
+            branch_name: { type: "string", description: "Branch name if advance is for a branch" },
+          },
+          required: ["amount", "purpose", "date"],
+        },
+      },
+    },
+  ] : undefined;
+
   // --- Call NVIDIA API ---
   const messages = [
     ...(history ?? []),
@@ -355,6 +453,7 @@ Once all mandatory fields are confirmed, summarise what you are about to record 
       messages: [{ role: "system", content: systemPrompt }, ...messages],
       temperature: 0.3,
       max_tokens: 1024,
+      ...(tools ? { tools, tool_choice: "auto" } : {}),
     }),
   });
 
@@ -366,7 +465,17 @@ Once all mandatory fields are confirmed, summarise what you are about to record 
 
   const data = await response.json();
   console.log("NVIDIA response:", JSON.stringify(data).slice(0, 500));
-  const reply = data.choices?.[0]?.message?.content ?? "No response.";
 
+  const choice = data.choices?.[0]?.message;
+
+  // Tool call: return action for frontend confirmation
+  if (choice?.tool_calls?.length) {
+    const call = choice.tool_calls[0];
+    let args: Record<string, unknown> = {};
+    try { args = JSON.parse(call.function.arguments); } catch { /* leave empty */ }
+    return NextResponse.json({ action: { tool: call.function.name, args } });
+  }
+
+  const reply = choice?.content ?? "No response.";
   return NextResponse.json({ reply });
 }
