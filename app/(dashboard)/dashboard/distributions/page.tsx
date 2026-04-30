@@ -24,12 +24,23 @@ export default async function DistributionsPage({
   const params = await searchParams;
   const now = new Date();
 
+  // Default to current bimonthly period: 1–15 or 16–end of month
+  const bimonthlyStart = now.getDate() <= 15
+    ? new Date(now.getFullYear(), now.getMonth(), 1)
+    : new Date(now.getFullYear(), now.getMonth(), 16);
+  const bimonthlyEnd = now.getDate() <= 15
+    ? new Date(now.getFullYear(), now.getMonth(), 15, 23, 59, 59, 999)
+    : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  const defaultStartStr = bimonthlyStart.toISOString().slice(0, 10);
+  const defaultEndStr = bimonthlyEnd.toISOString().slice(0, 10);
+
   const monthStart = params.startDate
     ? new Date(params.startDate)
-    : new Date(now.getFullYear(), now.getMonth(), 1);
+    : bimonthlyStart;
   const monthEnd = params.endDate
     ? new Date(new Date(params.endDate).setHours(23, 59, 59, 999))
-    : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    : bimonthlyEnd;
 
   const [distributions, branches, owners, revenueByBranch, milkCostsByBranch, expensesByBranch] =
     await Promise.all([
@@ -101,9 +112,9 @@ export default async function DistributionsPage({
     createdAt: d.createdAt.toISOString(),
   }));
 
-  const periodLabel = params.startDate && params.endDate
-    ? `${new Date(params.startDate).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" })} – ${new Date(params.endDate).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" })}`
-    : now.toLocaleString("default", { month: "long", year: "numeric" });
+  const effectiveStart = params.startDate ?? defaultStartStr;
+  const effectiveEnd = params.endDate ?? defaultEndStr;
+  const periodLabel = `${new Date(effectiveStart).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" })} – ${new Date(effectiveEnd).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" })}`;
 
   return (
     <div className="space-y-6">
@@ -125,8 +136,8 @@ export default async function DistributionsPage({
         ownerOptions={owners}
         branchSummaries={branchSummaries}
         monthLabel={periodLabel}
-        startDate={params.startDate ?? ""}
-        endDate={params.endDate ?? ""}
+        startDate={effectiveStart}
+        endDate={effectiveEnd}
       />
     </div>
   );
