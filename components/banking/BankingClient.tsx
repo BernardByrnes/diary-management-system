@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { formatDate } from "@/lib/utils/date";
-import { Plus, Search, Pencil, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Plus, Layers, Search, Pencil, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import BulkBankingModal from "./BulkBankingModal";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Modal from "@/components/ui/Modal";
@@ -38,6 +39,7 @@ export default function BankingClient({ initialRecords, branchOptions, userRole 
   const [dateTo, setDateTo] = useState("");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<DepositRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DepositRecord | null>(null);
   const [saving, setSaving] = useState(false);
@@ -99,6 +101,13 @@ export default function BankingClient({ initialRecords, branchOptions, userRole 
                 className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400"
               />
             </div>
+            <button
+              onClick={() => setBulkOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl transition-colors"
+            >
+              <Layers className="w-4 h-4" />
+              Bulk Entry
+            </button>
             <button
               onClick={() => setAddOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-xl transition-colors"
@@ -290,6 +299,13 @@ filtered.map((r) => (
           </div>
         </Modal>
       )}
+      <BulkBankingModal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        branchOptions={branchOptions}
+        onSuccess={(newRecords) => setRecords((prev) => [...(newRecords as DepositRecord[]), ...prev])}
+        onError={(msg) => addToast("error", msg)}
+      />
     </>
   );
 }

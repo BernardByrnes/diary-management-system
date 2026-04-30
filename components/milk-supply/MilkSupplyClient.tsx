@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { formatDate } from "@/lib/utils/date";
-import { Plus, Search, Pencil, Trash2, FileText, Droplets } from "lucide-react";
+import { Plus, Layers, Search, Pencil, Trash2, FileText, Droplets } from "lucide-react";
+import BulkMilkSupplyModal from "./BulkMilkSupplyModal";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Modal from "@/components/ui/Modal";
@@ -52,6 +53,7 @@ export default function MilkSupplyClient({
   const [dateTo, setDateTo] = useState("");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<MilkSupplyRecord | null>(null);
 
   const addToast = useCallback(
@@ -204,6 +206,13 @@ export default function MilkSupplyClient({
                 recordedBy: r.recordedBy.fullName,
               }))}
             />
+            <button
+              onClick={() => setBulkOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl transition-colors"
+            >
+              <Layers className="w-4 h-4" />
+              Bulk Entry
+            </button>
             <button
               onClick={() => setAddOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-xl transition-colors"
@@ -362,6 +371,43 @@ export default function MilkSupplyClient({
           onError={(msg) => addToast("error", msg)}
         />
       )}
+
+      {/* Bulk Entry Modal */}
+      <BulkMilkSupplyModal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        branchOptions={branchOptions}
+        onSuccess={(newRecords) => {
+          const mapped = (newRecords as unknown[]).map((r) => {
+            const rec = r as {
+              id: string; date: string; liters: string | number;
+              costPerLiter: string | number; totalCost: string | number;
+              retailPricePerLiter?: string | number | null;
+              deliveryReference?: string | null;
+              branch: { id: string; name: string };
+              supplier: { id: string; name: string };
+              recordedBy: { id: string; fullName: string };
+              createdAt: string;
+            };
+            return {
+              id: rec.id,
+              date: typeof rec.date === "string" ? rec.date : new Date(rec.date).toISOString(),
+              liters: rec.liters.toString(),
+              costPerLiter: rec.costPerLiter.toString(),
+              totalCost: rec.totalCost.toString(),
+              retailPricePerLiter: rec.retailPricePerLiter?.toString() ?? "",
+              deliveryReference: rec.deliveryReference ?? null,
+              branch: rec.branch,
+              supplier: rec.supplier,
+              recordedBy: rec.recordedBy,
+              createdAt: typeof rec.createdAt === "string" ? rec.createdAt : new Date(rec.createdAt).toISOString(),
+            } as MilkSupplyRecord;
+          });
+          setRecords((prev) => [...mapped, ...prev]);
+          addToast("success", `${mapped.length} deliver${mapped.length !== 1 ? "ies" : "y"} recorded`);
+        }}
+        onError={(msg) => addToast("error", msg)}
+      />
     </>
   );
 }

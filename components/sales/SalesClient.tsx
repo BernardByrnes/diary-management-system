@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { formatDate } from "@/lib/utils/date";
-import { Plus, Search, Pencil, Trash2, FileText, ShoppingCart } from "lucide-react";
+import { Plus, Layers, Search, Pencil, Trash2, FileText, ShoppingCart } from "lucide-react";
+import BulkSalesModal from "./BulkSalesModal";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Modal from "@/components/ui/Modal";
@@ -48,6 +49,7 @@ export default function SalesClient({
   const [dateTo, setDateTo] = useState("");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<SaleRecord | null>(null);
   const [viewTarget, setViewTarget] = useState<SaleRecord | null>(null);
 
@@ -181,6 +183,13 @@ export default function SalesClient({
                 recordedBy: r.recordedBy.fullName,
               }))}
             />
+            <button
+              onClick={() => setBulkOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl transition-colors"
+            >
+              <Layers className="w-4 h-4" />
+              Bulk Entry
+            </button>
             <button
               onClick={() => setAddOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-xl transition-colors"
@@ -403,6 +412,41 @@ export default function SalesClient({
             </div>
           </Modal>
         )}
+
+      {/* Bulk Entry Modal */}
+      <BulkSalesModal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        branchOptions={branchOptions}
+        onSuccess={(newRecords) => {
+          const mapped = (newRecords as unknown[]).map((r) => {
+            const rec = r as {
+              id: string; date: string; litersSold: string | number;
+              pricePerLiter: string | number; revenue: string | number;
+              branch: { id: string; name: string };
+              recordedBy: { id: string; fullName: string };
+              createdAt: string;
+              milkSupplyId?: string | null;
+              milkSupply?: { id: string; date: string } | null;
+            };
+            return {
+              id: rec.id,
+              date: typeof rec.date === "string" ? rec.date : new Date(rec.date).toISOString(),
+              litersSold: rec.litersSold.toString(),
+              pricePerLiter: rec.pricePerLiter.toString(),
+              revenue: rec.revenue.toString(),
+              branch: rec.branch,
+              recordedBy: rec.recordedBy,
+              createdAt: typeof rec.createdAt === "string" ? rec.createdAt : new Date(rec.createdAt).toISOString(),
+              milkSupplyId: rec.milkSupplyId ?? null,
+              milkSupply: rec.milkSupply ?? null,
+            } as SaleRecord;
+          });
+          setRecords((prev) => [...mapped, ...prev]);
+          addToast("success", `${mapped.length} sale record${mapped.length !== 1 ? "s" : ""} saved`);
+        }}
+        onError={(msg) => addToast("error", msg)}
+      />
       </>
     );
   }

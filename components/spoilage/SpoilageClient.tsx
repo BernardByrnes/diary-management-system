@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { formatDate } from "@/lib/utils/date";
-import { Plus, Search, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import { Plus, Layers, Search, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import BulkSpoilageModal from "./BulkSpoilageModal";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -49,6 +50,7 @@ export default function SpoilageClient({ initialRecords, branchOptions, userRole
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [addOpen, setAddOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SpoilageRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -127,7 +129,16 @@ export default function SpoilageClient({ initialRecords, branchOptions, userRole
               className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400"
             />
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            {userRole === "EXECUTIVE_DIRECTOR" && (
+              <button
+                onClick={() => setBulkOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl transition-colors"
+              >
+                <Layers className="w-4 h-4" />
+                Bulk Entry
+              </button>
+            )}
             {(userRole === "MANAGER" || userRole === "EXECUTIVE_DIRECTOR") && (
               <button
                 onClick={() => setAddOpen(true)}
@@ -243,6 +254,41 @@ export default function SpoilageClient({ initialRecords, branchOptions, userRole
           </div>
         </Modal>
       )}
+
+      {/* Bulk Entry Modal */}
+      <BulkSpoilageModal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        branchOptions={branchOptions}
+        onSuccess={(newRecords) => {
+          const mapped = (newRecords as unknown[]).map((r) => {
+            const rec = r as {
+              id: string; date: string; liters: string | number; reason: string;
+              status: string;
+              branch: { id: string; name: string };
+              reportedBy: { id: string; fullName: string };
+              reviewedBy: { id: string; fullName: string } | null;
+              reviewedAt: string | null;
+              createdAt: string;
+            };
+            return {
+              id: rec.id,
+              date: typeof rec.date === "string" ? rec.date : new Date(rec.date).toISOString(),
+              liters: rec.liters.toString(),
+              reason: rec.reason,
+              status: rec.status,
+              branch: rec.branch,
+              reportedBy: rec.reportedBy,
+              reviewedBy: rec.reviewedBy,
+              reviewedAt: rec.reviewedAt,
+              createdAt: typeof rec.createdAt === "string" ? rec.createdAt : new Date(rec.createdAt).toISOString(),
+            } as SpoilageRecord;
+          });
+          setRecords((prev) => [...mapped, ...prev]);
+          addToast("success", `${mapped.length} spoilage record${mapped.length !== 1 ? "s" : ""} saved`);
+        }}
+        onError={(msg) => addToast("error", msg)}
+      />
     </>
   );
 }
