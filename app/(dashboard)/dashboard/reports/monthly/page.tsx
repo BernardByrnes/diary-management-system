@@ -66,7 +66,7 @@ export default async function MonthlySummaryPage({
     }),
     prisma.milkSupply.findMany({
       where: { date: dateFilter },
-      select: { supplierId: true, liters: true, totalCost: true, supplier: { select: { name: true } } },
+      select: { supplierId: true, liters: true, totalCost: true, supplier: { select: { name: true, createdAt: true } } },
     }),
     prisma.supplierPayment.findMany({
       where: {},
@@ -138,24 +138,16 @@ export default async function MonthlySummaryPage({
     })
   );
 
-  // Top 5 suppliers by volume
-  const supplierMap = new Map<string, { name: string; liters: number; cost: number }>();
-  for (const s of allSupplies) {
-    const existing = supplierMap.get(s.supplierId);
-    if (existing) {
-      existing.liters += Number(s.liters);
-      existing.cost += Number(s.totalCost);
-    } else {
-      supplierMap.set(s.supplierId, {
-        name: s.supplier.name,
-        liters: Number(s.liters),
-        cost: Number(s.totalCost),
-      });
-    }
-  }
-  const topSuppliers = Array.from(supplierMap.values())
-    .sort((a, b) => b.liters - a.liters)
-    .slice(0, 5);
+  // All deliveries roll up to the primary supplier (Fred) regardless of who drove them
+  const primarySupplierName = allSupplies
+    .slice()
+    .sort((a, b) => new Date(a.supplier.createdAt).getTime() - new Date(b.supplier.createdAt).getTime())[0]
+    ?.supplier.name ?? "Supplier";
+  const combinedLiters = allSupplies.reduce((sum, s) => sum + Number(s.liters), 0);
+  const combinedCost = allSupplies.reduce((sum, s) => sum + Number(s.totalCost), 0);
+  const topSuppliers = combinedLiters > 0
+    ? [{ name: primarySupplierName, liters: combinedLiters, cost: combinedCost }]
+    : [];
 
   // Payment status summary
   const paymentSummary = {
