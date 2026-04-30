@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { getActiveUserOrError } from "@/lib/utils/session";
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const { user, error } = await getActiveUserOrError();
   if (error) return error;

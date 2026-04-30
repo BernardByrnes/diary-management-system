@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db/prisma";
 import { createAuditLog } from "@/lib/utils/audit";
 import type { ExpenseCategory, PaymentMethod } from "@prisma/client";
 
+export const maxDuration = 60;
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export type ImportType = "expenses" | "milk" | "sales" | "auto";
