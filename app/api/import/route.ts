@@ -276,7 +276,7 @@ If a type has no rows in the CSV, return an empty rows array for it.`;
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.NVIDIA_API_KEY}` },
       body: JSON.stringify({
-        model: "minimaxai/minimax-m2.7",
+        model: "nvidia/llama-3.1-nemotron-nano-8b-v1",
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `Parse this mixed CSV:\n\n${csvSample}` }],
         temperature: 0.1,
         max_tokens: 8192,
@@ -355,7 +355,7 @@ Return ONLY valid JSON (no markdown):
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.NVIDIA_API_KEY}` },
     body: JSON.stringify({
-      model: "minimaxai/minimax-m2.7",
+      model: "nvidia/llama-3.1-nemotron-nano-8b-v1",
       messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `Parse this CSV (${type}):\n\n${csvSample}` }],
       temperature: 0.1,
       max_tokens: 4096,
